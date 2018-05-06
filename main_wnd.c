@@ -16,6 +16,8 @@ typedef struct tagMAINWNDDATA
     HICON hMainIcon;        /** < Main Icon handle */    
     HMENU hTrayIconMenu;    /** < Menu for the tray icon */
     BOOL bOnStartup;        /** < Is being run on startup */
+    HFONT hWorkHoursFont;   /** < Font for the hours worked in the dialog box */
+    COLORREF crWorkHoursCol;/** < Color of the working hours */   
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
@@ -62,6 +64,8 @@ static VOID DestroyMainWndData(
             DestroyIcon(lpData->hMainIcon);
         if(NULL != lpData->hTrayIconMenu)
             DestroyMenu(lpData->hTrayIconMenu);
+        if(NULL != lpData->hWorkHoursFont)
+            DeleteObject(lpData->hWorkHoursFont);
         
         HeapFree(g_hHeap, 0, lpData);
     }
@@ -85,7 +89,9 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->hMainIcon = NULL;
     lpData->hTrayIconMenu = NULL;
     lpData->bOnStartup = FALSE;
-        
+    lpData->hWorkHoursFont = NULL;
+    lpData->crWorkHoursCol = (COLORREF)GetSysColor(COLOR_BTNTEXT);
+
     return lpData;
 }
 
@@ -122,28 +128,28 @@ static BOOL OnRunAtStartup(
         DWORD dwRes;
         static TCHAR lpExeName[1024];
 
-		/* Get path to current EXE file */
-		dwRes = GetModuleFileName(NULL, lpExeName, 1024);
+	/* Get path to current EXE file */
+        dwRes = GetModuleFileName(NULL, lpExeName, 1024);
 
-		/* Return, if filename was nor received correctly */
-		if (dwRes == 0 && dwRes >= 1024)
-		{
+        /* Return, if filename was nor received correctly */
+        if (dwRes == 0 && dwRes >= 1024)
+        {
             RegCloseKey(hKey);
-			return FALSE;
-		}	
+            return FALSE;
+        }	
 		
-		/* Ty to write filename of current executable to registry */
-		if (ERROR_SUCCESS != RegSetValueEx(hKey, lpProjectName, 0,
-			REG_SZ, (LPBYTE)lpExeName, (dwRes + 1) * sizeof(TCHAR)))
-		{
-			RegCloseKey(hKey);			
-			return FALSE;
-		}
+        /* Ty to write filename of current executable to registry */
+        if (ERROR_SUCCESS != RegSetValueEx(hKey, lpProjectName, 0,
+            REG_SZ, (LPBYTE)lpExeName, (dwRes + 1) * sizeof(TCHAR)))
+        {
+            RegCloseKey(hKey);			
+            return FALSE;
+        }
     }
     else
     {
         /* Delete registry value holding filename of VUT Disk Mapper */
-		RegDeleteValue(hKey, lpProjectName);
+	RegDeleteValue(hKey, lpProjectName);
     }
     
     /* Check or uncheck the menu item */
@@ -156,7 +162,7 @@ static BOOL OnRunAtStartup(
     lpData->bOnStartup = bOnStartup;
 
     /* Close all registry keys */
-	RegCloseKey(hKey);
+    RegCloseKey(hKey);
     return TRUE;
 }
 
@@ -170,30 +176,30 @@ static VOID IsRegisteredToRunAtStartup(
 )
 {
     LPMAINWNDDATA lpData;
-	HKEY hKey;
-	LONG lRes;
+    HKEY hKey;
+    LONG lRes;
 
     /* Get main window data */
     lpData = GetMainWindowData(hwnd);
 	
-	/* Open Windows/Run key */
-	if (RegOpenKeyEx(HKEY_CURRENT_USER,
-		TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), 0,
-		KEY_QUERY_VALUE | KEY_WOW64_32KEY, &hKey) != 
-		ERROR_SUCCESS)
-	{		
-		return;
-	}
+    /* Open Windows/Run key */
+    if (RegOpenKeyEx(HKEY_CURRENT_USER,
+        TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Run"), 0,
+        KEY_QUERY_VALUE | KEY_WOW64_32KEY, &hKey) != 
+        ERROR_SUCCESS)
+    {		
+        return;
+    }
 
-	/* Check if specified registry value exists */
-	lRes = RegQueryValueEx(hKey, lpProjectName, NULL,
-		NULL, NULL, NULL);
+    /* Check if specified registry value exists */
+    lRes = RegQueryValueEx(hKey, lpProjectName, NULL,
+        NULL, NULL, NULL);
 
-	/* Close all registry keys */
-	RegCloseKey(hKey);	
+    /* Close all registry keys */
+    RegCloseKey(hKey);	
 
-	/* If value exists */
-	lpData->bOnStartup = (ERROR_SUCCESS == lRes);
+    /* If value exists */
+    lpData->bOnStartup = (ERROR_SUCCESS == lRes);
     
     /* Check or uncheck the menu item */
     CheckMenuItem(GetMenu(hwnd), IDM_RUNATSTARTUP,
@@ -236,7 +242,15 @@ static BOOL OnInitDialog(
     IsRegisteredToRunAtStartup(hwnd);
     
     /* Change arrival time format */
-    SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_SETFORMAT, 0, TEXT("HH':'mm"));
+    SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_SETFORMAT, 0,
+        (LPARAM)TEXT("HH':'mm"));
+    
+    /* Create worked hours font */
+    lpData->hWorkHoursFont = CreateFont(52,0,0,0,FW_BOLD,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_OUTLINE_PRECIS,
+                CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY, VARIABLE_PITCH,TEXT("Arial"));
+    SendDlgItemMessage(hwnd, IDC_WORK_TIME, WM_SETFONT,
+        (WPARAM)lpData->hWorkHoursFont, MAKELPARAM(TRUE, 0));
+    SetDlgItemText(hwnd, IDC_WORK_TIME, TEXT("00:00"));
     
     return TRUE;
 }
@@ -287,6 +301,26 @@ static INT_PTR OnDestroy(
     PostQuitMessage(0);
 
     return TRUE;
+}
+
+/**
+ * @brief Notification sent by a control
+ * 
+ * @param hwnd Main window control
+ * @param lpNmhdr Pointer to notification information structure
+ * 
+ * @return TRUE if message is processed
+ */
+static INT_PTR OnNotify(
+    HWND hwnd,
+    LPNMHDR lpNmhdr
+)
+{
+    switch(lpNmhdr->idFrom)
+    {
+    }
+
+    return FALSE;
 }
 
 /**
@@ -410,6 +444,34 @@ static INT_PTR OnTrayIconNotify(
 }
 
 /**
+ * @brief Requests color of disabled edit control child
+ * 
+ * @param hwnd Main window handle
+ * @param hdcControl Device context of the control
+ * @param hwndControl Control window handle
+ * 
+ * @return TRUE if message is processed 
+ */
+static INT_PTR OnCtlColorStatic(
+    HWND hwnd,
+    HDC hdcControl,
+    HWND hwndControl
+)
+{
+    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
+    
+    switch(GetDlgCtrlID(hwndControl))
+    {
+    case IDC_WORK_TIME:
+        SetBkMode(hdcControl, (COLORREF)GetSysColor(COLOR_BTNFACE));
+        SetTextColor(hdcControl, lpData->crWorkHoursCol);
+        return (INT_PTR)GetSysColorBrush(COLOR_BTNFACE);
+    }
+    
+    return FALSE;
+}
+
+/**
  * @brief Main window dialog procedure
  * 
  * @param hwnd Main Window handle
@@ -430,6 +492,9 @@ static INT_PTR CALLBACK DialogProc(
     {
     case WM_INITDIALOG:
         return OnInitDialog(hwnd, (HWND)wParam, (LPVOID)lParam);
+            
+    case WM_NOTIFY:
+        return OnNotify(hwnd, (LPNMHDR)lParam);
             
     case WM_COMMAND:
         /* Control command */
@@ -457,6 +522,9 @@ static INT_PTR CALLBACK DialogProc(
 
     case WM_TRAY_ICON:
         return OnTrayIconNotify(hwnd, wParam, (UINT)lParam);
+    
+    case WM_CTLCOLORSTATIC:
+        return OnCtlColorStatic(hwnd, (HDC)wParam, (HWND)lParam);
     }
     
     return FALSE;
