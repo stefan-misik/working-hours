@@ -9,6 +9,7 @@
 #define IDI_MAIN                        101
 
 #define IDD_MAIN_WND                    1000
+    #define IDC_ARR_TIME                1001
 
 
 /* Controls */

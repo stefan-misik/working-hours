@@ -50,7 +50,8 @@ CAPTION PROJECT_NAME
 MENU IDR_MENU
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN    
-    
+    CONTROL         "",IDC_ARR_TIME, DATETIMEPICK_CLASS, WS_BORDER | WS_CHILD |
+                    WS_VISIBLE | DTS_TIMEFORMAT, 7, 7, 50, 14
 END
 
 /******************************************************************************/

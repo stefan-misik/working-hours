@@ -235,6 +235,9 @@ static BOOL OnInitDialog(
     /* Check or uncheck the 'Run at startup' menu item */
     IsRegisteredToRunAtStartup(hwnd);
     
+    /* Change arrival time format */
+    SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_SETFORMAT, 0, TEXT("HH':'mm"));
+    
     return TRUE;
 }
 
@@ -508,13 +511,13 @@ BOOL CreateMainWindow(
         FALSE);
     
     /* Create main Window */
-	g_hMainWnd = CreateDialogParam(
-		g_hInstance,
-		MAKEINTRESOURCE(IDD_MAIN_WND),
-		NULL,
-		DialogProc,
-		(LPARAM)lpData
-	);
+    g_hMainWnd = CreateDialogParam(
+        g_hInstance,
+        MAKEINTRESOURCE(IDD_MAIN_WND),
+        NULL,
+        DialogProc,
+        (LPARAM)lpData
+    );
     
     /* Check if window was created*/
     if(NULL == g_hMainWnd)
@@ -524,8 +527,8 @@ BOOL CreateMainWindow(
     }
     else
     {
-        /* Hide the window by default */
-        ShowMainWnd(g_hMainWnd, FALSE);
+        /* Show the window by default */
+        ShowMainWnd(g_hMainWnd, TRUE);
         return TRUE;
     }
 }
