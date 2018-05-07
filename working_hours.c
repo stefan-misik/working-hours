@@ -25,7 +25,7 @@ BOOL WhWhtToSystime(
     ZeroMemory(lpSystime, sizeof(SYSTEMTIME));
     lpSystime->wHour = lpWht->wHour;
     lpSystime->wMinute = lpWht->wMinute;
-    
+
     return TRUE;
 }
 
@@ -41,6 +41,17 @@ BOOL WhCalculate(
         
     iMinutes = lpwhtNow->wMinute + (60 * lpwhtNow->wHour);
     iMinutes -= lpwhtArrival->wMinute + (60 * lpwhtArrival->wHour);
+    
+    /* Subtract 5 minutes form beginning */
+    iMinutes -= 5;
+    
+    if(iMinutes > 390)
+        iMinutes -= 30;
+    else if (iMinutes > 360)
+        iMinutes = 360;
+    
+    /* Subtract 5 minutes from end */
+    iMinutes -= 5;
     
     /* Make sure the time spent working is not negative */
     if(iMinutes < 0)
