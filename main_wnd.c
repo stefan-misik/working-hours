@@ -3,6 +3,7 @@
 #include "tray_icon.h"
 #include "about_dialog.h"
 #include "defs.h"
+#include "working_hours.h"
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -26,9 +27,57 @@ typedef struct tagMAINWNDDATA
 /* ID of the tray icon */
 #define TRAY_ICON_ID 0
 
+/* Timer ID for the working hours update */
+#define WH_TIMER_ID 10
+/* Working hours timer period in milliseconds */
+#define WH_TIMER_PERIOD 1000
+
 /* Get Main window data pointer */
 #define GetMainWindowData(hWnd) (LPMAINWNDDATA)(GetWindowLongPtr((hWnd), \
-                                                GWLP_USERDATA))
+                                               GWLP_USERDATA))
+
+/**
+ * @brief Procedure called when working hours count is to be updated
+ * 
+ * @param hwnd Main window handle
+ */
+static VOID UpdateWorkingHours(
+    HWND hwnd
+)
+{
+    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
+    SYSTEMTIME st;
+    WHTIME whtArrival, whtNow, whtWorked;
+    TCHAR lptstrTimeWorked[64];
+    
+    /* Get arrival time */
+    if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_GETSYSTEMTIME,
+        0, (WPARAM)(&st)))
+        return;
+    /* Convert */
+    WhSystimeToWht(&whtArrival, &st);
+    
+    /* Get current time */
+    GetLocalTime(&st);
+    /* Convert */
+    WhSystimeToWht(&whtNow, &st);
+    
+    /* Calculate current time spent working */
+    WhCalculate(&whtArrival, &whtNow, &whtWorked, &(lpData->crWorkHoursCol));
+    /* Convert */
+    WhWhtToSystime(&st, &whtWorked);
+    
+    /* Format time spent working into a string */
+    GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT("HH':'mm"),
+            lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
+    /* Update time worked control */
+    SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
+    
+    /* Invalidate entire working hours counter */
+    InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, TRUE);
+    return;
+}
+
 /**
  * @brief Show or hide main window
  * 
@@ -44,9 +93,19 @@ static VOID ShowMainWnd(
     {
         SetForegroundWindow(hWnd);
         ShowWindow(hWnd, SW_SHOW);
+        
+        /* Start working hours update timer */
+        SetTimer(hWnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
+        /* Update working hours now */
+        UpdateWorkingHours(hWnd);
+        
+        
     }
     else
-    {       
+    {
+        /* Stop working hours update timer */
+        KillTimer(hWnd, WH_TIMER_ID);
+        
         ShowWindow(hWnd, SW_HIDE);
     }
 }
@@ -250,7 +309,6 @@ static BOOL OnInitDialog(
                 CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY, VARIABLE_PITCH,TEXT("Arial"));
     SendDlgItemMessage(hwnd, IDC_WORK_TIME, WM_SETFONT,
         (WPARAM)lpData->hWorkHoursFont, MAKELPARAM(TRUE, 0));
-    SetDlgItemText(hwnd, IDC_WORK_TIME, TEXT("00:00"));
     
     return TRUE;
 }
@@ -304,6 +362,30 @@ static INT_PTR OnDestroy(
 }
 
 /**
+ * @brief Received when a timer elapses
+ * 
+ * @param hwnd Main window handle
+ * @param idEvent Timer ID
+ * @param lpTimerProc Pointer to procedure registered with the timer
+ * 
+ * @return TRUE if message is processed 
+ */
+static INT_PTR OnTimer(
+    HWND hwnd,
+    UINT_PTR idEvent,
+    TIMERPROC lpTimerProc
+)
+{
+    switch(idEvent)
+    {
+    case WH_TIMER_ID:
+        UpdateWorkingHours(hwnd);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+/**
  * @brief Notification sent by a control
  * 
  * @param hwnd Main window control
@@ -318,6 +400,16 @@ static INT_PTR OnNotify(
 {
     switch(lpNmhdr->idFrom)
     {
+        case IDC_ARR_TIME:
+            if(DTN_DATETIMECHANGE == lpNmhdr->code)
+            {
+                /* Update time spent working when change of arrival time has 
+                 * occurred */
+                UpdateWorkingHours(hwnd);
+                return TRUE;
+            }
+            else
+                return FALSE;
     }
 
     return FALSE;
@@ -519,6 +611,9 @@ static INT_PTR CALLBACK DialogProc(
 
     case WM_DESTROY:
         return OnDestroy(hwnd);
+    
+    case WM_TIMER:
+        return OnTimer(hwnd, (UINT_PTR)wParam, (TIMERPROC)lParam);
 
     case WM_TRAY_ICON:
         return OnTrayIconNotify(hwnd, wParam, (UINT)lParam);

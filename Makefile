@@ -15,7 +15,7 @@ endif
 
 # Project settings
 PROJ	= working-hours
-SRC	= main.c main_wnd.c defs.c tray_icon.c about_dialog.c
+SRC	= main.c main_wnd.c defs.c tray_icon.c about_dialog.c working_hours.c
 RES	= resource.rc
 
 # Compile flags
