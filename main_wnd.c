@@ -1,3 +1,5 @@
+#include <Shlwapi.h>
+
 #include "main_wnd.h"
 #include "resource.h"
 #include "tray_icon.h"
@@ -79,6 +81,57 @@ static VOID UpdateWorkingHours(
 }
 
 /**
+ * @brief Get the handle of the monitor with the mouse cursor on 
+ *
+ * @ret Monitor handle
+ */
+static HMONITOR MonitorFromCursor(
+    VOID
+)
+{
+    POINT pt;
+    if(!GetCursorPos(&pt))
+    {
+        pt.x = 0;
+        pt.y = 0;
+    }
+    
+    return MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+}
+/**
+ * @brief Place the window in the center of the screen with mouse cursor
+ *
+ * @param hWnd Handle of the window to be moved
+ */
+static VOID CenterWindow(
+	HWND hWnd
+)
+{
+    MONITORINFO mi;
+
+    /* Move windows to the center of monitor */
+    mi.cbSize = sizeof(MONITORINFO);
+    if(FALSE != GetMonitorInfo(MonitorFromCursor(), &mi))
+    {
+        RECT rc;
+        if(TRUE == GetWindowRect(hWnd, &rc))
+        {
+            LONG lWidth = rc.right - rc.left;
+            LONG lHeight = rc.bottom - rc.top;
+
+            MoveWindow(hWnd,
+                ((mi.rcWork.right - mi.rcWork.left) / 2) +
+                    mi.rcWork.left - (lWidth / 2),
+                ((mi.rcWork.bottom - mi.rcWork.top) / 2) +
+                    mi.rcWork.top - (lHeight / 2),
+                lWidth,
+                lHeight,
+                TRUE);
+        }
+    }
+}
+
+/**
  * @brief Show or hide main window
  * 
  * @param hWnd Main window handle
@@ -99,7 +152,8 @@ static VOID ShowMainWnd(
         /* Update working hours now */
         UpdateWorkingHours(hWnd);
         
-        
+        /* Move windows to the screen with cursor */
+		CenterWindow(hWnd);
     }
     else
     {
