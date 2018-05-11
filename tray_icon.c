@@ -1,4 +1,6 @@
 #include "tray_icon.h"
+#include <strsafe.h>
+
 
 /******************************************************************************/
 /*                                Public                                      */
@@ -6,7 +8,7 @@
 
 /******************************************************************************/
 BOOL TrayIconAdd(
-    HWND hwnd,
+    HWND hWnd,
     UINT uID,
     UINT uCallbackMsg,
     HICON hTrayIcon
@@ -18,15 +20,40 @@ BOOL TrayIconAdd(
 
     nid.cbSize = sizeof(nid);
     nid.uVersion = NOTIFYICON_VERSION;
-    nid.hWnd = hwnd;
+    nid.hWnd = hWnd;
     nid.uID = uID;
-    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    nid.uFlags = NIF_ICON | NIF_MESSAGE;
     nid.uCallbackMessage = uCallbackMsg;
     nid.hIcon = hTrayIcon;
 
-    GetWindowText(hwnd, nid.szTip, sizeof(nid.szTip) / sizeof(TCHAR));
-
     return Shell_NotifyIcon(NIM_ADD, &nid);
+}
+
+/******************************************************************************/
+BOOL TrayUpdateText(
+    HWND hWnd,
+    UINT uID,
+    LPTSTR lptstrNewText    
+)
+{
+    NOTIFYICONDATA  nid;
+
+    memset(&nid, 0, sizeof(nid));
+    
+    nid.cbSize = sizeof(nid);
+    nid.uVersion = NOTIFYICON_VERSION;
+    nid.hWnd = hWnd;
+    nid.uID = uID;
+    nid.uFlags = NIF_TIP;
+    
+    /* Copy the new string */
+    if(FAILED(StringCchCopy(nid.szTip, sizeof(nid.szTip) / sizeof(TCHAR),
+        lptstrNewText)))
+    {
+        return FALSE;
+    }
+    
+    return Shell_NotifyIcon(NIM_MODIFY, &nid);
 }
 
 /******************************************************************************/

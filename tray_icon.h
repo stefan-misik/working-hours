@@ -8,16 +8,31 @@
  * 
  * @param hWnd Window owning the icon
  * @param uID ID of the icon
- * @param uCallbackMsg ??
+ * @param uCallbackMsg Message sent by the tray icon to the owning window
  * @param hTrayIcon Icon to be shown in the tray
  * 
  * @return FALSE on failure 
  */
 BOOL TrayIconAdd(
-	HWND hwnd,
+	HWND hWnd,
 	UINT uID,
 	UINT uCallbackMsg,
     HICON hTrayIcon
+);
+
+/**
+ * @brief Update balloon text of the notification icon
+ * 
+ * @param hWnd Window owning the icon
+ * @param uID ID of the icon
+ * @param lptstrNewText New text
+ *
+ * @return FALSE on failure 
+ */
+BOOL TrayUpdateText(
+    HWND hWnd,
+    UINT uID,
+    LPTSTR lptstrNewText    
 );
 
 /**

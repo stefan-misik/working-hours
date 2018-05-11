@@ -1,4 +1,5 @@
 #include <Shlwapi.h>
+#include <winuser.h>
 
 #include "main_wnd.h"
 #include "resource.h"
@@ -32,7 +33,9 @@ typedef struct tagMAINWNDDATA
 /* Timer ID for the working hours update */
 #define WH_TIMER_ID 10
 /* Working hours timer period in milliseconds */
-#define WH_TIMER_PERIOD 1000
+#define WH_TIMER_PERIOD 5000
+/* Time format used by the working hours */
+#define WH_TIME_FORMAT "HH':'mm"
 
 /* Get Main window data pointer */
 #define GetMainWindowData(hWnd) (LPMAINWNDDATA)(GetWindowLongPtr((hWnd), \
@@ -70,13 +73,22 @@ static VOID UpdateWorkingHours(
     WhWhtToSystime(&st, &whtWorked);
     
     /* Format time spent working into a string */
-    GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT("HH':'mm"),
+    GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
             lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
     /* Update time worked control */
     SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
     
     /* Invalidate entire working hours counter */
     InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, TRUE);
+    
+    /* Format time spent working into a string for tray icon */
+    GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
+        TEXT("'") TEXT(PROJECT_NAME) TEXT(" ('") TEXT(WH_TIME_FORMAT) TEXT(")"),
+        lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
+    
+    /* Update tray icon balloon */
+    TrayUpdateText(hwnd, TRAY_ICON_ID, lptstrTimeWorked);
+
     return;
 }
 
@@ -147,19 +159,11 @@ static VOID ShowMainWnd(
         SetForegroundWindow(hWnd);
         ShowWindow(hWnd, SW_SHOW);
         
-        /* Start working hours update timer */
-        SetTimer(hWnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
-        /* Update working hours now */
-        UpdateWorkingHours(hWnd);
-        
         /* Move windows to the screen with cursor */
-		CenterWindow(hWnd);
+        CenterWindow(hWnd);
     }
     else
     {
-        /* Stop working hours update timer */
-        KillTimer(hWnd, WH_TIMER_ID);
-        
         ShowWindow(hWnd, SW_HIDE);
     }
 }
@@ -356,13 +360,19 @@ static BOOL OnInitDialog(
     
     /* Change arrival time format */
     SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_SETFORMAT, 0,
-        (LPARAM)TEXT("HH':'mm"));
+        (LPARAM)TEXT(WH_TIME_FORMAT));
     
     /* Create worked hours font */
-    lpData->hWorkHoursFont = CreateFont(52,0,0,0,FW_BOLD,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_OUTLINE_PRECIS,
-                CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY, VARIABLE_PITCH,TEXT("Arial"));
+    lpData->hWorkHoursFont = CreateFont(52, 0, 0, 0, FW_BOLD, FALSE, FALSE,
+        FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
     SendDlgItemMessage(hwnd, IDC_WORK_TIME, WM_SETFONT,
         (WPARAM)lpData->hWorkHoursFont, MAKELPARAM(TRUE, 0));
+            
+    /* Start working hours update timer */
+    SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
+    /* Update working hours now */
+    UpdateWorkingHours(hwnd);
     
     return TRUE;
 }
