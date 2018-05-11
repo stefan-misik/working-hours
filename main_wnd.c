@@ -690,8 +690,8 @@ BOOL CreateMainWindow(
     }
     else
     {
-        /* Show the window by default */
-        ShowMainWnd(g_hMainWnd, TRUE);
+        /* Hide the window by default */
+        ShowMainWnd(g_hMainWnd, FALSE);
         return TRUE;
     }
 }

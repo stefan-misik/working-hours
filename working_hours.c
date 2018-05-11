@@ -37,25 +37,46 @@ BOOL WhCalculate(
     LPCOLORREF lpcrColor
 )
 {
-    INT iMinutes;
-        
-    iMinutes = lpwhtNow->wMinute + (60 * lpwhtNow->wHour);
-    iMinutes -= lpwhtArrival->wMinute + (60 * lpwhtArrival->wHour);
+    INT iMinutes, iMinutesNow;
+
+	iMinutesNow = lpwhtNow->wMinute + (60 * lpwhtNow->wHour);
+    iMinutes = iMinutesNow -
+		(lpwhtArrival->wMinute + (60 * lpwhtArrival->wHour));
     
     /* Subtract 5 minutes form beginning */
     iMinutes -= 5;
     
-    if(iMinutes > 390)
+	/* Subtract 30 minutes lunch break after 6 hours */
+    if(iMinutes > (6*60 + 30))
         iMinutes -= 30;
-    else if (iMinutes > 360)
-        iMinutes = 360;
+    else if (iMinutes > (6*60))
+        iMinutes = 6*60;
     
     /* Subtract 5 minutes from end */
     iMinutes -= 5;
     
     /* Make sure the time spent working is not negative */
     if(iMinutes < 0)
+	{
         iMinutes = 0;
+	}
+
+	/* Assign counter color */
+	if(iMinutesNow < (14*60 + 30))
+	{
+		/* RED - Before and of obligatory period */
+		*lpcrColor = RGB(237, 28, 36);
+	}
+	else if (iMinutes < (8*60))
+	{
+		/* ORANGE - After end of obligatory period, before 8 hours of work */
+		*lpcrColor = RGB(255, 127, 39);
+	}
+	else
+	{
+		/* GREEN - After 8 hours of work and after obligatory period */
+		*lpcrColor = RGB(34, 177, 76);
+	}
     
     lpwhtWorked->wMinute = iMinutes % 60;
     lpwhtWorked->wHour = iMinutes / 60;
