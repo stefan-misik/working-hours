@@ -17,11 +17,12 @@
  */
 typedef struct tagMAINWNDDATA
 {
-    HICON hMainIcon;        /** < Main Icon handle */    
-    HMENU hTrayIconMenu;    /** < Menu for the tray icon */
-    BOOL bOnStartup;        /** < Is being run on startup */
-    HFONT hWorkHoursFont;   /** < Font for the hours worked in the dialog box */
-    COLORREF crWorkHoursCol;/** < Color of the working hours */   
+    HICON hMainIcon;        /**< Main Icon handle */    
+    HMENU hTrayIconMenu;    /**< Menu for the tray icon */
+    BOOL bOnStartup;        /**< Is being run on startup */
+    HFONT hWorkHoursFont;   /**< Font for the hours worked in the dialog box */
+    COLORREF crWorkHoursCol;/**< Color of the working hours */   
+	WHTIME whtLastUpdate;   /**< Time of last window update */
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
@@ -33,7 +34,7 @@ typedef struct tagMAINWNDDATA
 /* Timer ID for the working hours update */
 #define WH_TIMER_ID 10
 /* Working hours timer period in milliseconds */
-#define WH_TIMER_PERIOD 5000
+#define WH_TIMER_PERIOD 1000
 /* Time format used by the working hours */
 #define WH_TIME_FORMAT "HH':'mm"
 
@@ -45,9 +46,11 @@ typedef struct tagMAINWNDDATA
  * @brief Procedure called when working hours count is to be updated
  * 
  * @param hwnd Main window handle
+ * @param bForceUpdate Perform an update regardless the last update time value
  */
 static VOID UpdateWorkingHours(
-    HWND hwnd
+    HWND hwnd,
+	BOOL bForceUpdate
 )
 {
     LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
@@ -55,39 +58,50 @@ static VOID UpdateWorkingHours(
     WHTIME whtArrival, whtNow, whtWorked;
     TCHAR lptstrTimeWorked[64];
     
-    /* Get arrival time */
-    if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_GETSYSTEMTIME,
-        0, (WPARAM)(&st)))
-        return;
-    /* Convert */
-    WhSystimeToWht(&whtArrival, &st);
-    
     /* Get current time */
     GetLocalTime(&st);
     /* Convert */
     WhSystimeToWht(&whtNow, &st);
-    
-    /* Calculate current time spent working */
-    WhCalculate(&whtArrival, &whtNow, &whtWorked, &(lpData->crWorkHoursCol));
-    /* Convert */
-    WhWhtToSystime(&st, &whtWorked);
-    
-    /* Format time spent working into a string */
-    GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
-            lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
-    /* Update time worked control */
-    SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
-    
-    /* Invalidate entire working hours counter */
-    InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, TRUE);
-    
-    /* Format time spent working into a string for tray icon */
-    GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
-        TEXT("'") TEXT(PROJECT_NAME) TEXT(" ('") TEXT(WH_TIME_FORMAT) TEXT(")"),
-        lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
-    
-    /* Update tray icon balloon */
-    TrayUpdateText(hwnd, TRAY_ICON_ID, lptstrTimeWorked);
+	
+	if(bForceUpdate || lpData->whtLastUpdate.wHour != whtNow.wHour || 
+		lpData->whtLastUpdate.wMinute != whtNow.wMinute)
+	{
+        
+        /* Get arrival time */
+        if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
+			DTM_GETSYSTEMTIME, 0, (WPARAM)(&st)))
+            return;
+        /* Convert */
+        WhSystimeToWht(&whtArrival, &st);
+        
+        /* Calculate current time spent working */
+		WhCalculate(&whtArrival, &whtNow, &whtWorked,
+		    &(lpData->crWorkHoursCol));
+		/* Convert */
+        WhWhtToSystime(&st, &whtWorked);
+        
+        /* Format time spent working into a string */
+		GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
+		    lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
+        /* Update time worked control */
+        SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
+        
+        /* Invalidate entire working hours counter */
+        InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, TRUE);
+        
+        /* Format time spent working into a string for tray icon */
+        GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
+            TEXT("'") TEXT(PROJECT_NAME) TEXT(" ('") TEXT(WH_TIME_FORMAT)
+			TEXT(")"), lptstrTimeWorked,
+			(sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
+        
+        /* Update tray icon balloon */
+        TrayUpdateText(hwnd, TRAY_ICON_ID, lptstrTimeWorked);
+
+		/* Update last update time */
+		lpData->whtLastUpdate.wHour = whtNow.wHour;
+		lpData->whtLastUpdate.wMinute = whtNow.wMinute;
+	}
 
     return;
 }
@@ -208,6 +222,8 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->bOnStartup = FALSE;
     lpData->hWorkHoursFont = NULL;
     lpData->crWorkHoursCol = (COLORREF)GetSysColor(COLOR_BTNTEXT);
+	lpData->whtLastUpdate.wHour = 0;
+	lpData->whtLastUpdate.wMinute = 0;
 
     return lpData;
 }
@@ -371,8 +387,8 @@ static BOOL OnInitDialog(
             
     /* Start working hours update timer */
     SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
-    /* Update working hours now */
-    UpdateWorkingHours(hwnd);
+    /* Force an update working hours now */
+    UpdateWorkingHours(hwnd, TRUE);
     
     return TRUE;
 }
@@ -443,7 +459,7 @@ static INT_PTR OnTimer(
     switch(idEvent)
     {
     case WH_TIMER_ID:
-        UpdateWorkingHours(hwnd);
+        UpdateWorkingHours(hwnd, FALSE);
         return TRUE;
     }
     return FALSE;
@@ -469,7 +485,7 @@ static INT_PTR OnNotify(
             {
                 /* Update time spent working when change of arrival time has 
                  * occurred */
-                UpdateWorkingHours(hwnd);
+                UpdateWorkingHours(hwnd, TRUE);
                 return TRUE;
             }
             else
