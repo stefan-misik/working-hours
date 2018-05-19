@@ -102,6 +102,10 @@ BOOL WhLeaveTime(
     
     lpwhtLeave->wMinute = iMinutes % 60;
     lpwhtLeave->wHour = iMinutes / 60;
+
+    /* Fix-up hours */
+    if(lpwhtLeave->wHour > 23)
+	lpwhtLeave->wHour %= 24;
     
     return TRUE;
 }

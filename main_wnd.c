@@ -57,51 +57,54 @@ static VOID UpdateWorkingHours(
     SYSTEMTIME st;
     WHTIME whtArrival, whtNow, whtWorked;
     TCHAR lptstrTimeWorked[64];
-    
+
     /* Get current time */
     GetLocalTime(&st);
     /* Convert */
     WhSystimeToWht(&whtNow, &st);
 	
-	if(bForceUpdate || lpData->whtLastUpdate.wHour != whtNow.wHour || 
-		lpData->whtLastUpdate.wMinute != whtNow.wMinute)
-	{
-        
+    if(bForceUpdate || lpData->whtLastUpdate.wHour != whtNow.wHour || 
+        lpData->whtLastUpdate.wMinute != whtNow.wMinute)
+    {
         /* Get arrival time */
         if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
-			DTM_GETSYSTEMTIME, 0, (WPARAM)(&st)))
+            DTM_GETSYSTEMTIME, 0, (WPARAM)(&st)))
             return;
         /* Convert */
         WhSystimeToWht(&whtArrival, &st);
-        
-        /* Calculate current time spent working */
-	WhCalculate(&whtArrival, &whtNow, &whtWorked,
-	    &(lpData->crWorkHoursCol));
-	/* Convert */
-        WhWhtToSystime(&st, &whtWorked);
-        
-        /* Format time spent working into a string */
-	GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
-	    lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
-        /* Update time worked control */
-        SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
-        
-        /* Invalidate entire working hours counter */
-        InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, TRUE);
-        
-        /* Format time spent working into a string for tray icon */
-        GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
-            TEXT("'") TEXT(PROJECT_NAME) TEXT(" ('") TEXT(WH_TIME_FORMAT)
-			TEXT(")"), lptstrTimeWorked,
-			(sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
-        
-        /* Update tray icon balloon */
-        TrayUpdateText(hwnd, TRAY_ICON_ID, lptstrTimeWorked);
 
-		/* Update last update time */
-		lpData->whtLastUpdate.wHour = whtNow.wHour;
-		lpData->whtLastUpdate.wMinute = whtNow.wMinute;
-	}
+        /* Calculate current time spent working */
+        WhCalculate(&whtArrival, &whtNow, &whtWorked,
+            &(lpData->crWorkHoursCol));
+        /* Convert */
+        WhWhtToSystime(&st, &whtWorked);
+
+        /* Format time spent working into a string */
+        if(0 != GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
+            TEXT(WH_TIME_FORMAT), lptstrTimeWorked,
+            (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1))
+        {
+            /* Update time worked control */
+            SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
+
+            /* Invalidate entire working hours counter */
+            InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, FALSE);
+        }
+
+        /* Format time spent working into a string for tray icon */
+        if(0 != GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
+            TEXT("'") TEXT(PROJECT_NAME) TEXT(" ('") TEXT(WH_TIME_FORMAT)
+                TEXT(")"), lptstrTimeWorked,
+                (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1))
+        {
+            /* Update tray icon balloon */
+            TrayUpdateText(hwnd, TRAY_ICON_ID, lptstrTimeWorked);
+        }
+
+        /* Update last update time */
+        lpData->whtLastUpdate.wHour = whtNow.wHour;
+        lpData->whtLastUpdate.wMinute = whtNow.wMinute;
+    }
 }
 
 /**
@@ -110,7 +113,7 @@ static VOID UpdateWorkingHours(
  * @param hwnd Main window handle
  */
 static VOID UpdateLeaveTime(
-HWND hwnd
+    HWND hwnd
 )
 {
     SYSTEMTIME st;
@@ -131,11 +134,12 @@ HWND hwnd
     WhWhtToSystime(&st, &whtLeave);
 
     /* Format time spent working into a string for tray icon */
-    GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
-        lptstrLeaveTime, (sizeof(lptstrLeaveTime)/sizeof(TCHAR)) - 1);
-        
-    /* Update control text */
-    SetDlgItemText(hwnd, IDC_LEAVE_TIME, lptstrLeaveTime);
+    if(0 != GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
+        lptstrLeaveTime, (sizeof(lptstrLeaveTime)/sizeof(TCHAR)) - 1))
+    { 
+        /* Update control text */
+        SetDlgItemText(hwnd, IDC_LEAVE_TIME, lptstrLeaveTime);
+    }
 }
 
 /**
@@ -411,7 +415,7 @@ static BOOL OnInitDialog(
         (LPARAM)TEXT(WH_TIME_FORMAT));
     
     /* Create worked hours font */
-    lpData->hWorkHoursFont = CreateFont(52, 0, 0, 0, FW_BOLD, FALSE, FALSE,
+    lpData->hWorkHoursFont = CreateFont(46, 0, 0, 0, FW_BOLD, FALSE, FALSE,
         FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
     SendDlgItemMessage(hwnd, IDC_WORK_TIME, WM_SETFONT,
@@ -549,6 +553,11 @@ static INT_PTR OnControlCommand(
 {
     switch(wControlID)
     {
+    case IDC_WORK_TIME:
+        /* Deselect this control and take focus away from this control */
+        SendDlgItemMessage(hwnd, IDC_WORK_TIME, EM_SETSEL, (WPARAM)-1, (LPARAM)0);
+        SetFocus(GetDlgItem(hwnd, IDC_ARR_TIME));
+        return FALSE;
     }
     return FALSE;
 }

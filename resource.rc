@@ -52,14 +52,15 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Arrival time:", IDC_STATIC, 7, 10, 50, 8
     CONTROL         "",IDC_ARR_TIME, DATETIMEPICK_CLASS, WS_BORDER | WS_CHILD |
-                    WS_VISIBLE | DTS_TIMEFORMAT, 50, 7, 53, 14
+                    WS_VISIBLE | DTS_TIMEFORMAT | WS_TABSTOP, 50, 7, 53, 14
 
     LTEXT           "Leave time:", IDC_STATIC, 7, 28, 50, 8
     EDITTEXT        IDC_LEAVE_TIME, 50, 25, 53, 14, WS_BORDER | NOT WS_TABSTOP |
                     ES_READONLY
 
     GROUPBOX        "You've worked for", IDC_STATIC, 7, 46, 96, 46
-    LTEXT           "", IDC_WORK_TIME, 13, 57, 84, 28
+    EDITTEXT        IDC_WORK_TIME, 13, 57, 84, 28,
+                    NOT WS_BORDER | NOT WS_TABSTOP | ES_READONLY
 END
 
 /******************************************************************************/
