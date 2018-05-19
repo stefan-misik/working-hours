@@ -50,7 +50,7 @@ typedef struct tagMAINWNDDATA
  */
 static VOID UpdateWorkingHours(
     HWND hwnd,
-	BOOL bForceUpdate
+    BOOL bForceUpdate
 )
 {
     LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
@@ -75,14 +75,14 @@ static VOID UpdateWorkingHours(
         WhSystimeToWht(&whtArrival, &st);
         
         /* Calculate current time spent working */
-		WhCalculate(&whtArrival, &whtNow, &whtWorked,
-		    &(lpData->crWorkHoursCol));
-		/* Convert */
+	WhCalculate(&whtArrival, &whtNow, &whtWorked,
+	    &(lpData->crWorkHoursCol));
+	/* Convert */
         WhWhtToSystime(&st, &whtWorked);
         
         /* Format time spent working into a string */
-		GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
-		    lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
+	GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
+	    lptstrTimeWorked, (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1);
         /* Update time worked control */
         SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
         
@@ -102,8 +102,40 @@ static VOID UpdateWorkingHours(
 		lpData->whtLastUpdate.wHour = whtNow.wHour;
 		lpData->whtLastUpdate.wMinute = whtNow.wMinute;
 	}
+}
 
-    return;
+/**
+ * @brief Update the leave time control
+ * 
+ * @param hwnd Main window handle
+ */
+static VOID UpdateLeaveTime(
+HWND hwnd
+)
+{
+    SYSTEMTIME st;
+    WHTIME whtArrival, whtLeave;
+    TCHAR lptstrLeaveTime[64];
+
+    /* Get arrival time */
+    if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
+        DTM_GETSYSTEMTIME, 0, (WPARAM)(&st)))
+        return;
+    /* Convert */
+    WhSystimeToWht(&whtArrival, &st);
+
+    /* Calculate leave time */
+    WhLeaveTime(&whtArrival, &whtLeave);
+
+    /* Convert */
+    WhWhtToSystime(&st, &whtLeave);
+
+    /* Format time spent working into a string for tray icon */
+    GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
+        lptstrLeaveTime, (sizeof(lptstrLeaveTime)/sizeof(TCHAR)) - 1);
+        
+    /* Update control text */
+    SetDlgItemText(hwnd, IDC_LEAVE_TIME, lptstrLeaveTime);
 }
 
 /**
@@ -387,8 +419,9 @@ static BOOL OnInitDialog(
             
     /* Start working hours update timer */
     SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
-    /* Force an update working hours now */
+    /* Force an update working hours and leave time now */
     UpdateWorkingHours(hwnd, TRUE);
+    UpdateLeaveTime(hwnd);
     
     return TRUE;
 }
@@ -486,6 +519,8 @@ static INT_PTR OnNotify(
                 /* Update time spent working when change of arrival time has 
                  * occurred */
                 UpdateWorkingHours(hwnd, TRUE);
+                /* Update the leave time */
+                UpdateLeaveTime(hwnd);
                 return TRUE;
             }
             else

@@ -53,3 +53,17 @@ BOOL WhCalculate(
     LPWHTIME lpwhtWorked,
     LPCOLORREF lpcrColor
 );
+
+/**
+ * @brief Calculate leave time
+ * 
+ * Time 8 hours from arrival time
+ * 
+ * @param lpwhtArrival
+ * @param lpwhtLeaveTime
+ * @return 
+ */
+BOOL WhLeaveTime(
+    const LPWHTIME lpwhtArrival,
+    LPWHTIME lpwhtLeave
+);

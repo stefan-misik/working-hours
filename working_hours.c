@@ -69,7 +69,7 @@ BOOL WhCalculate(
 	}
 	else if (iMinutes < (8*60))
 	{
-		/* ORANGE - After end of obligatory period, before 8 hours of work */
+		/* ORANGE - After end of obligatory period, before 8 hours ofwork */
 		*lpcrColor = RGB(255, 127, 39);
 	}
 	else
@@ -81,6 +81,27 @@ BOOL WhCalculate(
     lpwhtWorked->wMinute = iMinutes % 60;
     lpwhtWorked->wHour = iMinutes / 60;
 
+    
+    return TRUE;
+}
+
+
+
+/******************************************************************************/
+BOOL WhLeaveTime(
+    const LPWHTIME lpwhtArrival,
+    LPWHTIME lpwhtLeave
+)
+{
+    INT iMinutes;
+
+    iMinutes = lpwhtArrival->wMinute + (60 * lpwhtArrival->wHour);
+
+    /* Leave in 8 hours, 30 minutes for launch break, and twice 5 minutes */
+    iMinutes += (8 * 60) + 30 + 5 + 5;
+    
+    lpwhtLeave->wMinute = iMinutes % 60;
+    lpwhtLeave->wHour = iMinutes / 60;
     
     return TRUE;
 }

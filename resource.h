@@ -10,7 +10,8 @@
 
 #define IDD_MAIN_WND                    1000
     #define IDC_ARR_TIME                1001
-    #define IDC_WORK_TIME               1002
+    #define IDC_LEAVE_TIME              1002
+    #define IDC_WORK_TIME               1003
 
 /* Controls */
 #define IDD_ABOUT                       1030
