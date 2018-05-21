@@ -555,8 +555,12 @@ static INT_PTR OnControlCommand(
     {
     case IDC_WORK_TIME:
         /* Deselect this control and take focus away from this control */
-        SendDlgItemMessage(hwnd, IDC_WORK_TIME, EM_SETSEL, (WPARAM)-1, (LPARAM)0);
-        SetFocus(GetDlgItem(hwnd, IDC_ARR_TIME));
+		if(GetFocus() == GetDlgItem(hwnd, IDC_WORK_TIME))
+		{
+            SendDlgItemMessage(hwnd, IDC_WORK_TIME, EM_SETSEL, (WPARAM)-1,
+			    (LPARAM)0);
+            SetFocus(GetDlgItem(hwnd, IDC_ARR_TIME));
+		}
         return FALSE;
     }
     return FALSE;
