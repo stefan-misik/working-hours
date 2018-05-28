@@ -34,7 +34,7 @@
                                     DEFS_STRINGIFY(PROJECT_VER_4)
 #define PROJECT_NAME            "Working-hours"
 #define PROJECT_AUTHOR          "Stefan Misik"
-#define PROJECT_DESC            "Estimates number of hours spent working"
+#define PROJECT_DESC            "Working Hours: estimate time spent working"
 #define PROJECT_CPYR            "Copyright (C) 2018 " PROJECT_AUTHOR
 
 #define PROJECT_WEB "https://github.com/stefan-misik/working-hours/releases/latest"
