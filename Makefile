@@ -24,7 +24,7 @@ CFLAGS	    = -c -municode
 LDFLAGS	    = -static  -mwindows -municode
 LDLIBS	    = -lcomctl32 -luser32 -lkernel32 -lgdi32 -luxtheme
 # Number to subtract from the last git commits count
-LAST_COMMIT = 0
+LAST_COMMIT = 14
 
 ################################################################################
 # Git versions
