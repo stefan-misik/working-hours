@@ -37,3 +37,6 @@ res/*.*.png
 
 # Vim temporary files
 *.swp
+
+# Lua files
+lua*
