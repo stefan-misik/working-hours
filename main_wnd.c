@@ -22,7 +22,8 @@ typedef struct tagMAINWNDDATA
     BOOL bOnStartup;        /**< Is being run on startup */
     HFONT hWorkHoursFont;   /**< Font for the hours worked in the dialog box */
     COLORREF crWorkHoursCol;/**< Color of the working hours */   
-	WHTIME whtLastUpdate;   /**< Time of last window update */
+    WHTIME whtLastUpdate;   /**< Time of last window update */
+    LPWH lpWh;              /**< Working hours state */
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
@@ -74,7 +75,7 @@ static VOID UpdateWorkingHours(
         WhSystimeToWht(&whtArrival, &st);
 
         /* Calculate current time spent working */
-        WhCalculate(&whtArrival, &whtNow, &whtWorked,
+        WhCalculate(lpData->lpWh, &whtArrival, &whtNow, &whtWorked,
             &(lpData->crWorkHoursCol));
         /* Convert */
         WhWhtToSystime(&st, &whtWorked);
@@ -119,6 +120,7 @@ static VOID UpdateLeaveTime(
     SYSTEMTIME st;
     WHTIME whtArrival, whtLeave;
     TCHAR lptstrLeaveTime[64];
+    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
 
     /* Get arrival time */
     if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
@@ -128,7 +130,7 @@ static VOID UpdateLeaveTime(
     WhSystimeToWht(&whtArrival, &st);
 
     /* Calculate leave time */
-    WhLeaveTime(&whtArrival, &whtLeave);
+    WhLeaveTime(lpData->lpWh, &whtArrival, &whtLeave);
 
     /* Convert */
     WhWhtToSystime(&st, &whtLeave);
@@ -233,6 +235,12 @@ static VOID DestroyMainWndData(
             DestroyMenu(lpData->hTrayIconMenu);
         if(NULL != lpData->hWorkHoursFont)
             DeleteObject(lpData->hWorkHoursFont);
+        if(NULL != lpData->lpWh)
+        {
+            WhDestroy(lpData->lpWh);
+            HeapFree(g_hHeap, 0, lpData->lpWh);
+            lpData->lpWh = NULL;
+        }
         
         HeapFree(g_hHeap, 0, lpData);
     }
@@ -258,8 +266,18 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->bOnStartup = FALSE;
     lpData->hWorkHoursFont = NULL;
     lpData->crWorkHoursCol = (COLORREF)GetSysColor(COLOR_BTNTEXT);
-	lpData->whtLastUpdate.wHour = 0;
-	lpData->whtLastUpdate.wMinute = 0;
+    lpData->whtLastUpdate.wHour = 0;
+    lpData->whtLastUpdate.wMinute = 0;
+    
+    lpData->lpWh = (LPWH)HeapAlloc(g_hHeap, 0, sizeof(WH));
+    if(NULL != lpData)
+    {
+        if(!WhInit(lpData->lpWh))
+        {
+            HeapFree(g_hHeap, 0, lpData->lpWh);
+            lpData->lpWh = NULL;
+        }
+    }
 
     return lpData;
 }

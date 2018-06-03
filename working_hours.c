@@ -30,7 +30,28 @@ BOOL WhWhtToSystime(
 }
 
 /******************************************************************************/
+BOOL WhInit(
+    LPWH lpWh
+)
+{
+    /* Create Lua state */
+    lpWh->lpLua = luaL_newstate();
+    
+    return TRUE;
+}
+
+
+/******************************************************************************/
+VOID WhDestroy(
+    LPWH lpWh
+)
+{
+    lua_close(lpWh->lpLua);
+}
+
+/******************************************************************************/
 BOOL WhCalculate(
+    LPWH lpWh,
     const LPWHTIME lpwhtArrival,
     const LPWHTIME lpwhtNow,
     LPWHTIME lpwhtWorked,
@@ -89,6 +110,7 @@ BOOL WhCalculate(
 
 /******************************************************************************/
 BOOL WhLeaveTime(
+    LPWH lpWh,
     const LPWHTIME lpwhtArrival,
     LPWHTIME lpwhtLeave
 )

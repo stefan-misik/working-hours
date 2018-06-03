@@ -3,12 +3,29 @@
 
 #include "win_common.h"
 
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h> 
+
+/**
+ * @brief Time data structure
+ * 
+ */
 typedef struct tagWHTIME
 {
     WORD wHour;
     WORD wMinute;
 } WHTIME, *LPWHTIME;
-#endif /* WORKING_HOURS_H */
+
+
+/**
+ * @brief Structure holding state information for working hours calculation
+ * 
+ */
+typedef struct tagWH
+{
+    lua_State * lpLua;  /**< Lua interpreter state */
+} WH, *LPWH;
 
 
 /**
@@ -38,6 +55,25 @@ BOOL WhWhtToSystime(
 );
 
 /**
+ * @brief Initialize working hours state
+ * 
+ * @param lpWh Working hours state to be initialized
+ * @return 
+ */
+BOOL WhInit(
+    LPWH lpWh
+);
+
+/**
+ * @brief Destroy working hours state
+ * 
+ * @param lpWh Working hours to be destroyed
+ */
+VOID WhDestroy(
+    LPWH lpWh
+);
+
+/**
  * @brief Calculate the time spent working
  * 
  * @param lpWhtArrival Arrival time
@@ -48,6 +84,7 @@ BOOL WhWhtToSystime(
  * @return Always TRUE 
  */
 BOOL WhCalculate(
+    LPWH lpWh,
     const LPWHTIME lpwhtArrival,
     const LPWHTIME lpwhtNow,
     LPWHTIME lpwhtWorked,
@@ -64,6 +101,9 @@ BOOL WhCalculate(
  * @return 
  */
 BOOL WhLeaveTime(
+    LPWH lpWh,
     const LPWHTIME lpwhtArrival,
     LPWHTIME lpwhtLeave
 );
+
+#endif /* WORKING_HOURS_H */
