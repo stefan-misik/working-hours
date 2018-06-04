@@ -58,7 +58,8 @@ BOOL WhWhtToSystime(
  * @brief Initialize working hours state
  * 
  * @param lpWh Working hours state to be initialized
- * @return 
+ * 
+ * @return FALSE on failure, otherwise success
  */
 BOOL WhInit(
     LPWH lpWh
