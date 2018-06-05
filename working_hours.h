@@ -2,10 +2,8 @@
 #define WORKING_HOURS_H
 
 #include "win_common.h"
+#include "wh_lua.h"
 
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h> 
 
 /**
  * @brief Time data structure
@@ -16,17 +14,6 @@ typedef struct tagWHTIME
     WORD wHour;
     WORD wMinute;
 } WHTIME, *LPWHTIME;
-
-
-/**
- * @brief Structure holding state information for working hours calculation
- * 
- */
-typedef struct tagWH
-{
-    lua_State * lpLua;  /**< Lua interpreter state */
-} WH, *LPWH;
-
 
 /**
  * @brief Convert windows system time into working hours time format

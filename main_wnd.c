@@ -445,6 +445,9 @@ static BOOL OnInitDialog(
     UpdateWorkingHours(hwnd, TRUE);
     UpdateLeaveTime(hwnd);
     
+    /* Load the default Lua code */
+    WhLoadDefaultLuaCode(lpData->lpWh);
+    
     return TRUE;
 }
 

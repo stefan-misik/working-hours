@@ -19,8 +19,10 @@ TAR = tar
 
 # Project settings
 PROJ	= working-hours
-SRC	= main.c main_wnd.c defs.c tray_icon.c about_dialog.c working_hours.c
+SRC	= main.c main_wnd.c defs.c tray_icon.c about_dialog.c working_hours.c \
+          wh_lua.c
 RES	= resource.rc
+RES_DEP = default.lua icon.svg working-hours.manifest
 LUA_SRC = http://www.lua.org/ftp/lua-5.3.4.tar.gz
 
 # Lua stuff
@@ -33,6 +35,8 @@ CFLAGS	    = -c -municode -I$(LUA_DIR)/install/include
 LDFLAGS	    = -static  -mwindows -municode -L$(LUA_DIR)/install/lib
 LDLIBS	    = -lcomctl32 -luser32 -lkernel32 -lgdi32 -luxtheme \
               -llua
+# Resource dependency
+RES_DEP_FILES = $(addprefix res/,$(RES_DEP))
 # Number to subtract from the last git commits count
 LAST_COMMIT = 14
 
@@ -61,7 +65,7 @@ ifeq ($(DBG),y)
 endif
 ################################################################################
 
-.PHONY: all clean
+.PHONY: all clean cleanall
 
 all: $(EXECUTABLE)
 
@@ -74,7 +78,7 @@ $(EXECUTABLE): $(LUA_LIB) $(OBJ)
 defs.o: defs.c
 	$(CC) $(CFLAGS) $(PROJ_DEFINES) $< -o $@
 
-%.o: %.rc
+%.o: %.rc $(RES_DEP_FILES)
 	$(MAKE) -C res
 	$(WINDRES) $(RESFLAGS) $(subst \",\\\",$(PROJ_DEFINES)) -i $< -o $@
 
@@ -89,7 +93,10 @@ $(LUA_ARCH):
 
 
 clean:
-	$(RM) $(EXECUTABLE) $(OBJ) $(LUA_ARCH)
-	$(RM) -r $(LUA_DIR)
+	$(RM) $(EXECUTABLE) $(OBJ)
+	$(MAKE) -C $(LUA_DIR) $@
 	$(MAKE) -C res $@
+
+cleanall: clean
+	$(RM) -r $(LUA_ARCH) $(LUA_DIR)
 

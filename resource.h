@@ -37,5 +37,7 @@
 /* Strings */
 #define IDS_MAIN_ERROR                  1
 
+/* Data files */
+#define IDR_DEFAULT_LUA                 50000
 
 #endif /* RESOURCE_H */

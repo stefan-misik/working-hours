@@ -132,3 +132,6 @@ STRINGTABLE
 {
     IDS_MAIN_ERROR,     "Could not create main window."
 } 
+
+/******************************************************************************/
+IDR_DEFAULT_LUA     RCDATA  "res\\default.lua"
