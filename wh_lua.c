@@ -1,11 +1,29 @@
 #include "wh_lua.h"
 #include "resource.h"
+#include "defs.h"
 
 
 /******************************************************************************/
 /*                               Private                                      */
 /******************************************************************************/
 
+/**
+ * @brief Lua function calculating the working hours
+ * 
+ */
+#define LUA_CALCULATE_FCN "Calculate"
+
+/**
+ * @brief Lua function calculating the leave time
+ * 
+ */
+#define LUA_LEAVETIME_FCN "LeaveTime"
+
+/**
+ * @brief Caption used for Lua-related error messages
+ * 
+ */
+static LPCSTR lpErrorCaption = PROJECT_NAME ": Lua Error";
 
 
 /**
@@ -100,21 +118,27 @@ VOID WhLuaDestroy(
 }
 
 /******************************************************************************/
-VOID WhSetLuaCode(
+BOOL WhLuaSetCode(
     LPWH lpWh,
     LPSTR lpNewLuaCode
 )
 {
+    /* Load string into the Lua state */
+    if(0 != luaL_dostring(lpWh->lpLua, lpNewLuaCode))
+        return FALSE;
+    
     if(NULL != lpWh->lpLuaCode)
     {
         HeapFree(g_hHeap, 0, lpWh->lpLuaCode);
     }
     
     lpWh->lpLuaCode = lpNewLuaCode;
+    
+    return TRUE;
 }
 
 /******************************************************************************/
-BOOL WhLoadDefaultLuaCode(
+LPSTR WhLuaLoadDefaultCode(
     LPWH lpWh
 )
 {
@@ -124,25 +148,60 @@ BOOL WhLoadDefaultLuaCode(
     DWORD dwLuaLength;
     LPSTR lpNewLua;
     
-    /* Get Lua resource info */
+    /* Find the Lua code resource */
     hrscLua = FindResource(g_hInstance,
         MAKEINTRESOURCE(IDR_DEFAULT_LUA), RT_RCDATA);
+    /* Was resource found */
+    if(NULL == hrscLua)
+        return NULL;
+
+    /* Load the Lua code resource */
     hLua = LoadResource(NULL, hrscLua);
+    /* Was resource loaded */
+    if(NULL == hLua)
+        return NULL;
+    
+    /* Get the Lua code */
     dwLuaLength = SizeofResource(g_hInstance, hrscLua);
     lpOrigLua = LockResource(hLua);
+    /* Verify that resource was obtained */
+    if(NULL == lpOrigLua || 0 == dwLuaLength)
+        return NULL;
     
     /* Allocate buffer for Lua code string, add one byte for terminating zero */
     lpNewLua = HeapAlloc(g_hHeap, 0, dwLuaLength + 1);
     if(NULL == lpNewLua)
-        return FALSE;
+        return NULL;
     
     /* Copy Buffer */
     CopyMemory(lpNewLua, lpOrigLua, dwLuaLength);
     /* Add terminating zero */
     lpNewLua[dwLuaLength] = '\0';
+           
+    return lpNewLua;
+}
+
+/******************************************************************************/
+VOID WhLuaErrorMessage(
+    LPWH lpWh,
+    HWND hwndParent
+)
+{
+    LPCSTR lpMsg;
     
-    /* Set the code */
-    WhSetLuaCode(lpWh, lpNewLua);
-    
-    return TRUE;
+    /* Verify that there is a string (or an object convertible to string) on the
+     * top of the stack */
+    if(lua_isstring(lpWh->lpLua, -1))
+    {
+        /* Get the string */
+        lpMsg = lua_tostring(lpWh->lpLua, -1);
+
+        if(NULL != lpMsg)
+        {
+            MessageBoxA(hwndParent, lpMsg, lpErrorCaption,
+                MB_OK | MB_ICONEXCLAMATION | MB_DEFBUTTON1);
+            /* Pop the error message from the stack */
+            lua_pop(lpWh->lpLua, 1);
+        }
+    }
 }

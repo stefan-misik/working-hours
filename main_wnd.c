@@ -446,7 +446,9 @@ static BOOL OnInitDialog(
     UpdateLeaveTime(hwnd);
     
     /* Load the default Lua code */
-    WhLoadDefaultLuaCode(lpData->lpWh);
+    /* TODO: execute real Lua code and do error checking */
+    if(!WhLuaSetCode(lpData->lpWh, WhLuaLoadDefaultCode(lpData->lpWh)))
+        WhLuaErrorMessage(lpData->lpWh, hwnd);
     
     return TRUE;
 }
