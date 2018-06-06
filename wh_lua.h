@@ -17,6 +17,15 @@ typedef struct tagWH
     LPSTR lpLuaCode;    /**< Current Lua Code */
 } WH, *LPWH;
 
+/**
+ * @brief Time data structure
+ * 
+ */
+typedef struct tagWHTIME
+{
+    WORD wHour;
+    WORD wMinute;
+} WHTIME, *LPWHTIME;
 
 /**
  * @brief Initialize Lua sate in working hours state
@@ -73,6 +82,47 @@ LPSTR WhLuaLoadDefaultCode(
 VOID WhLuaErrorMessage(
     LPWH lpWh,
     HWND hwndParent
+);
+
+/**
+ * @brief Push the time structure on Lua stack
+ * 
+ * @param[in,out] lpLua Lua state
+ * @param[in] lpTime Pointer to time value to be pushed on the Lua stack
+ */
+VOID WhLuaPushTime(
+    lua_State * lpLua,
+    const LPWHTIME lpTime
+);
+
+/**
+ * @brief Pop the time structure from Lua stack
+ * 
+ * @param[in,out] lpLua Lua state
+ * @param[out] lpTime Pointer to time value which shall receive popped values
+ * 
+ * @return FALSE on Failure
+ * 
+ * @warning Function will not pop a value when fails
+ */
+BOOL WhLuaPopTime(
+    lua_State * lpLua,
+    LPWHTIME lpTime
+);
+
+/**
+ * @brief Pop the color from Lua stack
+ * 
+ * @param[in,out] lpLua Lua state
+ * @param[out] lpTime Pointer to variable which shall receive popped value
+ * 
+ * @return FALSE on Failure
+ * 
+ * @warning Function will not pop a value when fails
+ */
+BOOL WhLuaPopColor(
+    lua_State * lpLua,
+    LPCOLORREF lpcrColor
 );
 
 #endif /* WH_LUA_H */

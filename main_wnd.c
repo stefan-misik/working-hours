@@ -438,6 +438,11 @@ static BOOL OnInitDialog(
         CLEARTYPE_QUALITY, VARIABLE_PITCH, TEXT("Arial"));
     SendDlgItemMessage(hwnd, IDC_WORK_TIME, WM_SETFONT,
         (WPARAM)lpData->hWorkHoursFont, MAKELPARAM(TRUE, 0));
+    
+    /* Load the default Lua code */
+    /* TODO: execute real Lua code and do error checking */
+    if(!WhLuaSetCode(lpData->lpWh, WhLuaLoadDefaultCode(lpData->lpWh)))
+        WhLuaErrorMessage(lpData->lpWh, hwnd);
             
     /* Start working hours update timer */
     SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
@@ -445,10 +450,7 @@ static BOOL OnInitDialog(
     UpdateWorkingHours(hwnd, TRUE);
     UpdateLeaveTime(hwnd);
     
-    /* Load the default Lua code */
-    /* TODO: execute real Lua code and do error checking */
-    if(!WhLuaSetCode(lpData->lpWh, WhLuaLoadDefaultCode(lpData->lpWh)))
-        WhLuaErrorMessage(lpData->lpWh, hwnd);
+    
     
     return TRUE;
 }

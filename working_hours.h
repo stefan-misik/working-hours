@@ -5,15 +5,7 @@
 #include "wh_lua.h"
 
 
-/**
- * @brief Time data structure
- * 
- */
-typedef struct tagWHTIME
-{
-    WORD wHour;
-    WORD wMinute;
-} WHTIME, *LPWHTIME;
+
 
 /**
  * @brief Convert windows system time into working hours time format

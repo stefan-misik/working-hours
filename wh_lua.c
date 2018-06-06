@@ -1,6 +1,7 @@
 #include "wh_lua.h"
 #include "resource.h"
 #include "defs.h"
+#include "main_wnd.h"
 
 
 /******************************************************************************/
@@ -8,22 +9,34 @@
 /******************************************************************************/
 
 /**
- * @brief Lua function calculating the working hours
+ * @brief Name of the Lua table member representing @ref tagWHTIME::wHour
  * 
  */
-#define LUA_CALCULATE_FCN "Calculate"
+#define LUA_HOUR_MEMBER "Hour"
+/**
+ * @brief Name of the Lua table member representing @ref tagWHTIME::wMinute
+ * 
+ */
+#define LUA_MINUTE_MEMBER "Minute"
 
 /**
- * @brief Lua function calculating the leave time
+ * @brief Function used to create time data table
  * 
  */
-#define LUA_LEAVETIME_FCN "LeaveTime"
+#define LUA_NEW_TIME_FCN "WhNewTime"
+
+/**
+ * @brief Function provided for debugging purposes
+ * 
+ */
+#define LUA_ALERT_FCN "WhAlert"
+
 
 /**
  * @brief Caption used for Lua-related error messages
  * 
  */
-static LPCSTR lpErrorCaption = PROJECT_NAME ": Lua Error";
+static LPCSTR g_lpMessageCaption = PROJECT_NAME ": Lua";
 
 
 /**
@@ -79,6 +92,60 @@ static void * WhLuaAllocator(
     }
 }
 
+/**
+ * @brief Function to create time table in Lua
+ * 
+ * @param[in,out] lpLua
+ * 
+ * @return Number of outputs on Lua stack
+ */
+static int WhLuaNewTime(
+    lua_State * lpLua
+)
+{
+    WHTIME wht;
+    
+    /* Check arguments */
+    if(2 != lua_gettop(lpLua) ||
+        !lua_isnumber(lpLua, 1) || !lua_isnumber(lpLua, 2))
+    {
+        lua_pushstring(lpLua, "incorrect argument");
+        lua_error(lpLua);
+        return 0;
+    }
+    
+    /* Get the values */
+    wht.wHour = lua_tointeger(lpLua, 1);
+    wht.wMinute = lua_tointeger(lpLua, 2);
+    
+    /* Push the time on the stack */
+    WhLuaPushTime(lpLua, &wht);
+    return 1;
+}
+
+/**
+ * @brief Function to show custom Message Box
+ * 
+ * @param[in,out] lpLua
+ * 
+ * @return Number of outputs on Lua stack
+ */
+static int WhLuaAlert(
+    lua_State * lpLua
+)
+{
+    if(0 < lua_gettop(lpLua))
+    {
+        LPCSTR lpMsg;
+        
+        /* Get The string */
+        lpMsg = lua_tostring(lpLua, -1);
+        
+        /* Show the message */
+        MessageBoxA(g_hMainWnd, lpMsg, g_lpMessageCaption, MB_OK);
+    }
+    return 0;
+}
 
 /******************************************************************************/
 /*                                Public                                      */
@@ -95,7 +162,11 @@ BOOL WhLuaInit(
     
     /* Initialize with no Lua code */
     lpWh->lpLuaCode = NULL;
-       
+    
+    /* Register Lua Functions */
+    lua_register(lpWh->lpLua, LUA_NEW_TIME_FCN, WhLuaNewTime);
+    /*lua_register(lpWh->lpLua, LUA_ALERT_FCN, WhLuaAlert);*/
+
     return TRUE;
 }
 
@@ -198,10 +269,68 @@ VOID WhLuaErrorMessage(
 
         if(NULL != lpMsg)
         {
-            MessageBoxA(hwndParent, lpMsg, lpErrorCaption,
+            MessageBoxA(hwndParent, lpMsg, g_lpMessageCaption,
                 MB_OK | MB_ICONEXCLAMATION | MB_DEFBUTTON1);
             /* Pop the error message from the stack */
             lua_pop(lpWh->lpLua, 1);
         }
     }
+}
+
+/******************************************************************************/
+VOID WhLuaPushTime(
+    lua_State * lpLua,
+    const LPWHTIME lpTime
+)
+{
+    /* Create table with two elements */
+    lua_createtable(lpLua, 0, 2);
+    
+    /* Set the fields */
+    lua_pushinteger(lpLua, lpTime->wHour);
+    lua_setfield(lpLua, -2, LUA_HOUR_MEMBER);
+    lua_pushinteger(lpLua, lpTime->wMinute);
+    lua_setfield(lpLua, -2, LUA_MINUTE_MEMBER);
+}
+
+/******************************************************************************/
+BOOL WhLuaPopTime(
+    lua_State * lpLua,
+    LPWHTIME lpTime
+)
+{
+    /* Verify the type */
+    if(!lua_istable(lpLua, -1))
+        return FALSE;
+    
+    /* Get the fields */
+    lua_getfield(lpLua, -1, LUA_HOUR_MEMBER);
+    lpTime->wHour = lua_tointeger(lpLua, -1);
+    lua_pop(lpLua, 1);
+    lua_getfield(lpLua, -1, LUA_MINUTE_MEMBER);
+    lpTime->wMinute = lua_tointeger(lpLua, -1);
+        
+    /* Pop the last integer and the table */
+    lua_pop(lpLua, 2);
+    
+    return TRUE;
+}
+
+/******************************************************************************/
+BOOL WhLuaPopColor(
+    lua_State * lpLua,
+    LPCOLORREF lpcrColor
+)
+{
+    /* Verify the type */
+    if(!lua_isnumber(lpLua, -1))
+        return FALSE;
+    
+    /* Get the color */
+    *lpcrColor = (COLORREF)lua_tointeger(lpLua, -1);
+    
+    /* Pop the value */
+    lua_pop(lpLua, 1);
+    
+    return TRUE;
 }
