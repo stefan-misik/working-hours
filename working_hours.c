@@ -1,4 +1,5 @@
 #include "working_hours.h"
+#include "main_wnd.h"
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -46,81 +47,70 @@ BOOL WhWhtToSystime(
 }
 
 /******************************************************************************/
-BOOL WhInit(
-    LPWH lpWh
-)
-{
-    /* Create new Lua state */
-    if(!WhLuaInit(lpWh))
-        return FALSE;
-    
-    return TRUE;
-}
-
-
-/******************************************************************************/
-VOID WhDestroy(
-    LPWH lpWh
-)
-{
-    WhLuaDestroy(lpWh);
-}
-
-/******************************************************************************/
 BOOL WhCalculate(
-    LPWH lpWh,
+    LPWHLUA lpWhLua,
     const LPWHTIME lpwhtArrival,
     const LPWHTIME lpwhtNow,
     LPWHTIME lpwhtWorked,
     LPCOLORREF lpcrColor
 )
 {
+    BOOL bRet = TRUE;
     /* Push Calculate Lua function on the stack */
-    lua_getglobal(lpWh->lpLua, LUA_CALCULATE_FCN);
+    lua_getglobal(lpWhLua->lpLua, LUA_CALCULATE_FCN);
     
     /* Push input parameters onto Lua stack */
-    WhLuaPushTime(lpWh->lpLua, lpwhtArrival);
-    WhLuaPushTime(lpWh->lpLua, lpwhtNow);
+    WhLuaPushTime(lpWhLua->lpLua, lpwhtArrival);
+    WhLuaPushTime(lpWhLua->lpLua, lpwhtNow);
     
     /* Call the Lua function */
-    if(0 != lua_pcall(lpWh->lpLua, 2, 2, 0))
+    if(0 != lua_pcall(lpWhLua->lpLua, 2, 2, 0))
     {
-        WhLuaErrorMessage(lpWh, NULL);
+        WhLuaErrorMessage(lpWhLua);
         return FALSE;
     }
 
     /* Get the Color */
-    WhLuaPopColor(lpWh->lpLua, lpcrColor);
-    /* Get the the time worked result */
-    WhLuaPopTime(lpWh->lpLua, lpwhtWorked);
+    bRet = bRet && WhLuaToColor(lpWhLua->lpLua, lpcrColor, -1);
 
-    return TRUE;
+    /* Get the the time worked result */
+    bRet = bRet && WhLuaToTime(lpWhLua->lpLua, lpwhtWorked, -2);
+    
+    /* Pop the stack */
+    lua_pop(lpWhLua->lpLua, 2);
+
+    return bRet;
 }
 
 
 
 /******************************************************************************/
 BOOL WhLeaveTime(
-    LPWH lpWh,
+    LPWHLUA lpWhLua,
     const LPWHTIME lpwhtArrival,
     LPWHTIME lpwhtLeave
 )
 {
+    BOOL bRet = TRUE;
+    
     /* Push Leave Time Lua function on the stack */
-    lua_getglobal(lpWh->lpLua, LUA_LEAVETIME_FCN);
+    lua_getglobal(lpWhLua->lpLua, LUA_LEAVETIME_FCN);
     
     /* Push input parameters onto Lua stack */
-    WhLuaPushTime(lpWh->lpLua, lpwhtArrival);
+    WhLuaPushTime(lpWhLua->lpLua, lpwhtArrival);
     
     /* Call the Lua function */
-    if(0 != lua_pcall(lpWh->lpLua, 1, 1, 0))
+    if(0 != lua_pcall(lpWhLua->lpLua, 1, 1, 0))
     {
-        WhLuaErrorMessage(lpWh, NULL);
+        WhLuaErrorMessage(lpWhLua);
         return FALSE;
     }
 
     /* Get the the time worked result */
-    WhLuaPopTime(lpWh->lpLua, lpwhtLeave);
+    bRet = bRet && WhLuaToTime(lpWhLua->lpLua, lpwhtLeave, -1);
+    
+    /* Pop the stack */
+    lua_pop(lpWhLua->lpLua, 1);    
 
     return TRUE;
 }

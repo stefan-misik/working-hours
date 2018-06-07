@@ -23,7 +23,7 @@ typedef struct tagMAINWNDDATA
     HFONT hWorkHoursFont;   /**< Font for the hours worked in the dialog box */
     COLORREF crWorkHoursCol;/**< Color of the working hours */   
     WHTIME whtLastUpdate;   /**< Time of last window update */
-    LPWH lpWh;              /**< Working hours state */
+    LPWHLUA lpWhLua;        /**< Working hours state */
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
@@ -42,6 +42,9 @@ typedef struct tagMAINWNDDATA
 /* Get Main window data pointer */
 #define GetMainWindowData(hWnd) (LPMAINWNDDATA)(GetWindowLongPtr((hWnd), \
                                                GWLP_USERDATA))
+
+/* Path to file containing the Lua code */
+#define WH_LUA_CODE_FILE "working-hours.lua"
 
 /**
  * @brief Procedure called when working hours count is to be updated
@@ -63,10 +66,14 @@ static VOID UpdateWorkingHours(
     GetLocalTime(&st);
     /* Convert */
     WhSystimeToWht(&whtNow, &st);
-	
+    	
     if(bForceUpdate || lpData->whtLastUpdate.wHour != whtNow.wHour || 
         lpData->whtLastUpdate.wMinute != whtNow.wMinute)
     {
+        /* Update last update time */
+        lpData->whtLastUpdate.wHour = whtNow.wHour;
+        lpData->whtLastUpdate.wMinute = whtNow.wMinute;
+    
         /* Get arrival time */
         if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
             DTM_GETSYSTEMTIME, 0, (WPARAM)(&st)))
@@ -75,8 +82,10 @@ static VOID UpdateWorkingHours(
         WhSystimeToWht(&whtArrival, &st);
 
         /* Calculate current time spent working */
-        WhCalculate(lpData->lpWh, &whtArrival, &whtNow, &whtWorked,
-            &(lpData->crWorkHoursCol));
+        if(!WhCalculate(lpData->lpWhLua, &whtArrival, &whtNow, &whtWorked,
+                &(lpData->crWorkHoursCol)))
+            return;
+        
         /* Convert */
         WhWhtToSystime(&st, &whtWorked);
 
@@ -101,10 +110,6 @@ static VOID UpdateWorkingHours(
             /* Update tray icon balloon */
             TrayUpdateText(hwnd, TRAY_ICON_ID, lptstrTimeWorked);
         }
-
-        /* Update last update time */
-        lpData->whtLastUpdate.wHour = whtNow.wHour;
-        lpData->whtLastUpdate.wMinute = whtNow.wMinute;
     }
 }
 
@@ -130,7 +135,8 @@ static VOID UpdateLeaveTime(
     WhSystimeToWht(&whtArrival, &st);
 
     /* Calculate leave time */
-    WhLeaveTime(lpData->lpWh, &whtArrival, &whtLeave);
+    if(!WhLeaveTime(lpData->lpWhLua, &whtArrival, &whtLeave))
+        return;
 
     /* Convert */
     WhWhtToSystime(&st, &whtLeave);
@@ -235,11 +241,11 @@ static VOID DestroyMainWndData(
             DestroyMenu(lpData->hTrayIconMenu);
         if(NULL != lpData->hWorkHoursFont)
             DeleteObject(lpData->hWorkHoursFont);
-        if(NULL != lpData->lpWh)
+        if(NULL != lpData->lpWhLua)
         {
-            WhDestroy(lpData->lpWh);
-            HeapFree(g_hHeap, 0, lpData->lpWh);
-            lpData->lpWh = NULL;
+            WhLuaDestroy(lpData->lpWhLua);
+            HeapFree(g_hHeap, 0, lpData->lpWhLua);
+            lpData->lpWhLua = NULL;
         }
         
         HeapFree(g_hHeap, 0, lpData);
@@ -269,13 +275,13 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->whtLastUpdate.wHour = 0;
     lpData->whtLastUpdate.wMinute = 0;
     
-    lpData->lpWh = (LPWH)HeapAlloc(g_hHeap, 0, sizeof(WH));
+    lpData->lpWhLua = (LPWHLUA)HeapAlloc(g_hHeap, 0, sizeof(WHLUA));
     if(NULL != lpData)
     {
-        if(!WhInit(lpData->lpWh))
+        if(!WhLuaInit(lpData->lpWhLua))
         {
-            HeapFree(g_hHeap, 0, lpData->lpWh);
-            lpData->lpWh = NULL;
+            HeapFree(g_hHeap, 0, lpData->lpWhLua);
+            lpData->lpWhLua = NULL;
         }
     }
 
@@ -414,6 +420,7 @@ static BOOL OnInitDialog(
 )
 {
     LPMAINWNDDATA lpData = (LPMAINWNDDATA)lpAdditionalData;
+    LPSTR lpLuaCode;
     
     /* Store Pointer to the data structure with the window */
     SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)lpData);
@@ -439,10 +446,15 @@ static BOOL OnInitDialog(
     SendDlgItemMessage(hwnd, IDC_WORK_TIME, WM_SETFONT,
         (WPARAM)lpData->hWorkHoursFont, MAKELPARAM(TRUE, 0));
     
+    /* Set window handle for parenting Lua error message-boxes */
+    WhLuaSetErrorParentWnd(lpData->lpWhLua, hwnd);
     /* Load the default Lua code */
-    /* TODO: execute real Lua code and do error checking */
-    if(!WhLuaSetCode(lpData->lpWh, WhLuaLoadDefaultCode(lpData->lpWh)))
-        WhLuaErrorMessage(lpData->lpWh, hwnd);
+    lpLuaCode = WhLuaLoadCode(TEXT(WH_LUA_CODE_FILE));
+    if(NULL == lpLuaCode)
+        lpLuaCode = WhLuaLoadDefaultCode();
+    /* Set the loaded Lua code */
+    if(!WhLuaSetCode(lpData->lpWhLua, lpLuaCode))
+        WhLuaErrorMessage(lpData->lpWhLua);
             
     /* Start working hours update timer */
     SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);

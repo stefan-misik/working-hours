@@ -34,37 +34,18 @@ BOOL WhWhtToSystime(
 );
 
 /**
- * @brief Initialize working hours state
- * 
- * @param lpWh Working hours state to be initialized
- * 
- * @return FALSE on failure, otherwise success
- */
-BOOL WhInit(
-    LPWH lpWh
-);
-
-/**
- * @brief Destroy working hours state
- * 
- * @param lpWh Working hours to be destroyed
- */
-VOID WhDestroy(
-    LPWH lpWh
-);
-
-/**
  * @brief Calculate the time spent working
  * 
- * @param lpWhtArrival Arrival time
- * @param lpwhtNow Current time
- * @param lpwhtWorked Pointer which obtains the time spent working
- * @param lpcrColor Pointer which can optionally obtain informative color
+ * @param[in,out] lpWhLua Working hours Lua state
+ * @param[in] lpWhtArrival Arrival time
+ * @param[in] lpwhtNow Current time
+ * @param[out] lpwhtWorked Pointer which obtains the time spent working
+ * @param[out] lpcrColor Pointer which can optionally obtain informative color
  * 
- * @return Always TRUE 
+ * @return FALSE on failure
  */
 BOOL WhCalculate(
-    LPWH lpWh,
+    LPWHLUA lpWhLua,
     const LPWHTIME lpwhtArrival,
     const LPWHTIME lpwhtNow,
     LPWHTIME lpwhtWorked,
@@ -74,14 +55,15 @@ BOOL WhCalculate(
 /**
  * @brief Calculate leave time
  * 
- * Time 8 hours from arrival time
  * 
- * @param lpwhtArrival
- * @param lpwhtLeaveTime
- * @return 
+ * @param[in,out] lpWhLua Working hours Lua state
+ * @param[in] lpwhtArrival
+ * @param[out] lpwhtLeaveTime
+ * 
+ * @return FALSE on failure
  */
 BOOL WhLeaveTime(
-    LPWH lpWh,
+    LPWHLUA lpWhLua,
     const LPWHTIME lpwhtArrival,
     LPWHTIME lpwhtLeave
 );

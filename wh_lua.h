@@ -11,11 +11,12 @@
  * @brief Structure holding state information for working hours calculation
  * 
  */
-typedef struct tagWH
+typedef struct tagWHLUA
 {
     lua_State * lpLua;  /**< Lua interpreter state */
     LPSTR lpLuaCode;    /**< Current Lua Code */
-} WH, *LPWH;
+    HWND hwndParent;    /**< Parent window used for error messages */
+} WHLUA, *LPWHLUA;
 
 /**
  * @brief Time data structure
@@ -30,58 +31,78 @@ typedef struct tagWHTIME
 /**
  * @brief Initialize Lua sate in working hours state
  * 
- * @param[in,out] lpWh Working hours state
+ * @param[out] lpWhLua Working hours state
  * 
  * @return FALSE on failure
  */
 BOOL WhLuaInit(
-    LPWH lpWh
+    LPWHLUA lpWhLua
 );
 
 /**
  * @brief Destroy Lua state in working hours state
  * 
- * @param[in,out] lpWh Working hours state
+ * @param[in,out] lpWhLua Working hours Lua state
  */
 VOID WhLuaDestroy(
-    LPWH lpWh
+    LPWHLUA lpWhLua
+);
+
+/**
+ * @brief Set the parent window for Lua-related error message-boxes
+ * 
+ * @param[out] lpWhLua Working hours Lua state
+ * @param hwndParent New Parent window
+ */
+VOID WhLuaSetErrorParentWnd(
+    LPWHLUA lpWhLua,
+    HWND hwndParent
 );
 
 /**
  * @brief Set new Lua code and loads it into the Lua state
  * 
- * @param[in,out] lpWh Working hours state
+ * @param[in,out] lpWhLua Working hours state
  * @param lpNewLuaCode Pointer to buffer containing the string with new Lua code
  * 
  * @return FALSE on failure
  */
 BOOL WhLuaSetCode(
-    LPWH lpWh,
+    LPWHLUA lpWhLua,
     LPSTR lpNewLuaCode
+);
+
+/**
+ * @brief Load the Lua code from a text file
+ * 
+ * @param[in] lpFile Path to a file to be loaded
+ * 
+ * @return Allocated buffer with the loaded Lua code or NULL on failure
+ * 
+ * @warning The returned buffer needs to be freed with HeapFree() using the
+ *          default process heap GetProcessHeap()
+ */
+LPSTR WhLuaLoadCode(
+    LPCTSTR lpFile
 );
 
 /**
  * @brief Load the default Lua code from resources
  * 
- * @param[in,out] lpWh Working hours state
- * 
- * @return Allocated buffer with the default Lua code and needs to be freed
+ * @return Allocated buffer with the default Lua code or NULL on failure
  * 
  * @warning The returned buffer needs to be freed with HeapFree() using the
  *          default process heap GetProcessHeap()
  */
-LPSTR WhLuaLoadDefaultCode(
-    LPWH lpWh
-);
+LPSTR WhLuaLoadDefaultCode(VOID);
 
 /**
  * @brief Print string from the top of Lua stack as an error message
  * 
- * @param[in] lpWh Working hours state
+ * @param[in] lpWhLua Working hours state
  */
 VOID WhLuaErrorMessage(
-    LPWH lpWh,
-    HWND hwndParent
+    LPWHLUA lpWhLua
 );
 
 /**
@@ -100,14 +121,16 @@ VOID WhLuaPushTime(
  * 
  * @param[in,out] lpLua Lua state
  * @param[out] lpTime Pointer to time value which shall receive popped values
+ * @param iIndex Position in Lua stack
  * 
  * @return FALSE on Failure
  * 
  * @warning Function will not pop a value when fails
  */
-BOOL WhLuaPopTime(
+BOOL WhLuaToTime(
     lua_State * lpLua,
-    LPWHTIME lpTime
+    LPWHTIME lpTime,
+    INT iIndex
 );
 
 /**
@@ -115,14 +138,16 @@ BOOL WhLuaPopTime(
  * 
  * @param[in,out] lpLua Lua state
  * @param[out] lpTime Pointer to variable which shall receive popped value
+ * @param iIndex Position in Lua stack
  * 
  * @return FALSE on Failure
  * 
  * @warning Function will not pop a value when fails
  */
-BOOL WhLuaPopColor(
+BOOL WhLuaToColor(
     lua_State * lpLua,
-    LPCOLORREF lpcrColor
+    LPCOLORREF lpcrColor,
+    INT iIndex
 );
 
 #endif /* WH_LUA_H */

@@ -8,6 +8,8 @@
 /*                               Private                                      */
 /******************************************************************************/
 
+#define LUA_MAX_FILE_SIZE ((16*1024) - 1)
+
 /**
  * @brief Name of the Lua table member representing @ref tagWHTIME::wHour
  * 
@@ -225,66 +227,128 @@ static int WhLuaAlert(
 
 /******************************************************************************/
 BOOL WhLuaInit(
-    LPWH lpWh
+    LPWHLUA lpWhLua
 )
 {
-    lpWh->lpLua = lua_newstate(WhLuaAllocator, (void *)lpWh);
-    if(NULL == lpWh->lpLua)
+    /* Parent window */
+    lpWhLua->hwndParent = NULL;
+    
+    /* Create new Lua state */
+    lpWhLua->lpLua = lua_newstate(WhLuaAllocator, (void *)lpWhLua);
+    if(NULL == lpWhLua->lpLua)
         return FALSE;
     
     /* Initialize with no Lua code */
-    lpWh->lpLuaCode = NULL;
+    lpWhLua->lpLuaCode = NULL;
     
     /* Register Lua Functions */
-    lua_register(lpWh->lpLua, LUA_NEW_TIME_FCN, WhLuaNewTime);
-    lua_register(lpWh->lpLua, LUA_RGB_FCN, WhLuaRgb);
-    lua_register(lpWh->lpLua, LUA_FLOOR_FCN, WhLuaFloor);
+    lua_register(lpWhLua->lpLua, LUA_NEW_TIME_FCN, WhLuaNewTime);
+    lua_register(lpWhLua->lpLua, LUA_RGB_FCN, WhLuaRgb);
+    lua_register(lpWhLua->lpLua, LUA_FLOOR_FCN, WhLuaFloor);
+    lua_register(lpWhLua->lpLua, LUA_ALERT_FCN, WhLuaAlert);
 
     return TRUE;
 }
 
 /******************************************************************************/
 VOID WhLuaDestroy(
-    LPWH lpWh
+    LPWHLUA lpWhLua
 )
 {
-    if(NULL != lpWh->lpLua)
+    if(NULL != lpWhLua->lpLua)
     {
-        lua_close(lpWh->lpLua);
-        lpWh->lpLua = NULL;
+        lua_close(lpWhLua->lpLua);
+        lpWhLua->lpLua = NULL;
     }
     
-    if(NULL != lpWh->lpLuaCode)
+    if(NULL != lpWhLua->lpLuaCode)
     {
-        HeapFree(g_hHeap, 0, lpWh->lpLuaCode);
-        lpWh->lpLuaCode = NULL;
+        HeapFree(g_hHeap, 0, lpWhLua->lpLuaCode);
+        lpWhLua->lpLuaCode = NULL;
     }
 }
 
 /******************************************************************************/
+VOID WhLuaSetErrorParentWnd(
+    LPWHLUA lpWhLua,
+    HWND hwndParent
+)
+{
+    lpWhLua->hwndParent = hwndParent;
+}
+
+/******************************************************************************/
 BOOL WhLuaSetCode(
-    LPWH lpWh,
+    LPWHLUA lpWhLua,
     LPSTR lpNewLuaCode
 )
 {
     /* Load string into the Lua state */
-    if(0 != luaL_dostring(lpWh->lpLua, lpNewLuaCode))
+    if(0 != luaL_dostring(lpWhLua->lpLua, lpNewLuaCode))
         return FALSE;
     
-    if(NULL != lpWh->lpLuaCode)
+    if(NULL != lpWhLua->lpLuaCode)
     {
-        HeapFree(g_hHeap, 0, lpWh->lpLuaCode);
+        HeapFree(g_hHeap, 0, lpWhLua->lpLuaCode);
     }
     
-    lpWh->lpLuaCode = lpNewLuaCode;
+    lpWhLua->lpLuaCode = lpNewLuaCode;
     
     return TRUE;
 }
 
 /******************************************************************************/
-LPSTR WhLuaLoadDefaultCode(
-    LPWH lpWh
+LPSTR WhLuaLoadCode(
+    LPCTSTR lpFile
 )
+{
+    HANDLE hFile;
+    DWORD dwFileSize, dwBytesRead;
+    LPSTR lpLuaCode;
+    
+    /* Try to open the Lua source file */
+    hFile = CreateFile(lpFile, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if(hFile == INVALID_HANDLE_VALUE)
+        return NULL;
+
+    /* Get the file size */
+    dwFileSize = GetFileSize(hFile, NULL);
+    /* Check if file does not exceeds the maximum size */
+    if(dwFileSize > LUA_MAX_FILE_SIZE)
+    {
+        CloseHandle(hFile);
+        return NULL;
+    }
+    
+    /* Allocate buffer */
+    lpLuaCode = (LPSTR)HeapAlloc(g_hHeap, 0, dwFileSize + 1);
+    if(NULL == lpLuaCode)
+    {
+        CloseHandle(hFile);
+        return NULL;
+    }
+    
+    /* Read the file */
+    if(!ReadFile(hFile, lpLuaCode, dwFileSize, &dwBytesRead, NULL) ||
+            dwBytesRead != dwFileSize)
+    {
+        HeapFree(g_hHeap, 0, lpLuaCode);
+        CloseHandle(hFile);
+        return NULL;
+    }
+    
+    /* Close the file */
+    CloseHandle(hFile);
+    
+    /* Add terminating zero */
+    lpLuaCode[dwFileSize] = '\0';
+    
+    return lpLuaCode;
+}
+
+/******************************************************************************/
+LPSTR WhLuaLoadDefaultCode(VOID)
 {
     HRSRC hrscLua;
     HGLOBAL hLua;
@@ -327,26 +391,25 @@ LPSTR WhLuaLoadDefaultCode(
 
 /******************************************************************************/
 VOID WhLuaErrorMessage(
-    LPWH lpWh,
-    HWND hwndParent
+    LPWHLUA lpWhLua
 )
 {
     LPCSTR lpMsg;
     
     /* Verify that there is a string (or an object convertible to string) on the
      * top of the stack */
-    if(lua_isstring(lpWh->lpLua, -1))
+    if(lua_isstring(lpWhLua->lpLua, -1))
     {
         /* Get the string */
-        lpMsg = lua_tostring(lpWh->lpLua, -1);
+        lpMsg = lua_tostring(lpWhLua->lpLua, -1);
 
         if(NULL != lpMsg)
         {
-            MessageBoxA(hwndParent, lpMsg, g_lpMessageCaption,
+            MessageBoxA(lpWhLua->hwndParent, lpMsg, g_lpMessageCaption,
                 MB_OK | MB_ICONEXCLAMATION | MB_DEFBUTTON1);
-            /* Pop the error message from the stack */
-            lua_pop(lpWh->lpLua, 1);
         }
+        /* Pop the error message from the stack */
+        lua_pop(lpWhLua->lpLua, 1);
     }
 }
 
@@ -362,48 +425,47 @@ VOID WhLuaPushTime(
     /* Set the fields */
     lua_pushinteger(lpLua, lpTime->wHour);
     lua_setfield(lpLua, -2, LUA_HOUR_MEMBER);
+
     lua_pushinteger(lpLua, lpTime->wMinute);
     lua_setfield(lpLua, -2, LUA_MINUTE_MEMBER);
 }
 
 /******************************************************************************/
-BOOL WhLuaPopTime(
+BOOL WhLuaToTime(
     lua_State * lpLua,
-    LPWHTIME lpTime
+    LPWHTIME lpTime,
+    INT iIndex
 )
 {
     /* Verify the type */
-    if(!lua_istable(lpLua, -1))
+    if(!lua_istable(lpLua, iIndex))
         return FALSE;
     
     /* Get the fields */
-    lua_getfield(lpLua, -1, LUA_HOUR_MEMBER);
+    lua_getfield(lpLua, iIndex, LUA_HOUR_MEMBER);
     lpTime->wHour = lua_tointeger(lpLua, -1);
     lua_pop(lpLua, 1);
-    lua_getfield(lpLua, -1, LUA_MINUTE_MEMBER);
+    
+    lua_getfield(lpLua, iIndex, LUA_MINUTE_MEMBER);
     lpTime->wMinute = lua_tointeger(lpLua, -1);
-        
-    /* Pop the last integer and the table */
-    lua_pop(lpLua, 2);
+    lua_pop(lpLua, 1);
     
     return TRUE;
 }
 
 /******************************************************************************/
-BOOL WhLuaPopColor(
+BOOL WhLuaToColor(
     lua_State * lpLua,
-    LPCOLORREF lpcrColor
+    LPCOLORREF lpcrColor,
+    INT iIndex
 )
 {
     /* Verify the type */
-    if(!lua_isnumber(lpLua, -1))
+    if(!lua_isnumber(lpLua, iIndex))
         return FALSE;
     
     /* Get the color */
-    *lpcrColor = (COLORREF)lua_tointeger(lpLua, -1);
-    
-    /* Pop the value */
-    lua_pop(lpLua, 1);
+    *lpcrColor = (COLORREF)lua_tointeger(lpLua, iIndex);
     
     return TRUE;
 }
