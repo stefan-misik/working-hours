@@ -26,6 +26,18 @@
 #define LUA_NEW_TIME_FCN "WhNewTime"
 
 /**
+ * @brief Function used to create RGB color
+ * 
+ */
+#define LUA_RGB_FCN "WhRgb"
+
+/**
+ * @brief Function used to round down to integer value
+ * 
+ */
+#define LUA_FLOOR_FCN "WhFloor"
+
+/**
  * @brief Function provided for debugging purposes
  * 
  */
@@ -93,6 +105,41 @@ static void * WhLuaAllocator(
 }
 
 /**
+ * @brief Function to create RGB color
+ * 
+ * @param[in,out] lpLua
+ * 
+ * @return Number of outputs on Lua stack
+ */
+static int WhLuaRgb(
+    lua_State * lpLua
+)
+{
+    COLORREF crRgb;
+    
+    /* Check arguments */
+    if(3 != lua_gettop(lpLua) ||
+        !lua_isnumber(lpLua, 1) || !lua_isnumber(lpLua, 2) ||
+        !lua_isnumber(lpLua, 3))
+    {
+        lua_pushstring(lpLua, "incorrect argument");
+        lua_error(lpLua);
+        return 0;
+    }
+
+    /* Get the color value */
+    crRgb = RGB(
+            (UCHAR)lua_tonumber(lpLua, 1),
+            (UCHAR)lua_tonumber(lpLua, 2),
+            (UCHAR)lua_tonumber(lpLua, 3)
+            );
+    
+    /* Push the color on the stack */
+    lua_pushinteger(lpLua, (lua_Integer)crRgb);
+    return 1;
+}
+
+/**
  * @brief Function to create time table in Lua
  * 
  * @param[in,out] lpLua
@@ -113,13 +160,38 @@ static int WhLuaNewTime(
         lua_error(lpLua);
         return 0;
     }
-    
+
     /* Get the values */
-    wht.wHour = lua_tointeger(lpLua, 1);
-    wht.wMinute = lua_tointeger(lpLua, 2);
+    wht.wHour = (WORD)lua_tonumber(lpLua, 1);
+    wht.wMinute = (WORD)lua_tonumber(lpLua, 2);
     
     /* Push the time on the stack */
     WhLuaPushTime(lpLua, &wht);
+    return 1;
+}
+
+/**
+ * @brief Function to round down number to nearest integer value
+ * 
+ * @param[in,out] lpLua
+ * 
+ * @return Number of outputs on Lua stack
+ */
+static int WhLuaFloor(
+    lua_State * lpLua
+)
+{
+    /* Check arguments */
+    if(1 != lua_gettop(lpLua) || !lua_isnumber(lpLua, 1))
+    {
+        lua_pushstring(lpLua, "incorrect argument");
+        lua_error(lpLua);
+        return 0;
+    }
+
+    /* Push converted value */
+    lua_pushinteger(lpLua, (lua_Integer)lua_tonumber(lpLua, 1));
+    
     return 1;
 }
 
@@ -165,7 +237,8 @@ BOOL WhLuaInit(
     
     /* Register Lua Functions */
     lua_register(lpWh->lpLua, LUA_NEW_TIME_FCN, WhLuaNewTime);
-    /*lua_register(lpWh->lpLua, LUA_ALERT_FCN, WhLuaAlert);*/
+    lua_register(lpWh->lpLua, LUA_RGB_FCN, WhLuaRgb);
+    lua_register(lpWh->lpLua, LUA_FLOOR_FCN, WhLuaFloor);
 
     return TRUE;
 }
