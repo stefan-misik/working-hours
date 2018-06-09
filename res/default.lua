@@ -37,7 +37,7 @@ function Calculate(Arrival, Now)
     end
 
     -- Calculate worked time
-    local Worked = WhNewTime(WhFloor(Minutes / 60), Minutes % 60)
+    local Worked = WhNewTime(math.floor(Minutes / 60), Minutes % 60)
 
     -- Return calculated working hours and timer color
     return Worked, Color
@@ -53,7 +53,7 @@ function LeaveTime(Arrival)
     Minutes = (Minutes + (8*60) + 30 + 5 + 5) % (24*60)
 
     -- Calculate leave time
-    local Leave = WhNewTime(WhFloor(Minutes / 60), Minutes % 60)
+    local Leave = WhNewTime(math.floor(Minutes / 60), Minutes % 60)
 
     return Leave
 end

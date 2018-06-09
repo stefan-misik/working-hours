@@ -3,6 +3,8 @@
 #include "defs.h"
 #include "main_wnd.h"
 
+#include <lualib.h>
+
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -32,12 +34,6 @@
  * 
  */
 #define LUA_RGB_FCN "WhRgb"
-
-/**
- * @brief Function used to round down to integer value
- * 
- */
-#define LUA_FLOOR_FCN "WhFloor"
 
 /**
  * @brief Function provided for debugging purposes
@@ -107,6 +103,45 @@ static void * WhLuaAllocator(
 }
 
 /**
+ * @brief Load the specified module and undefine passed functions
+ * 
+ * @param[in,out] lpWhLua Working hours Lua state
+ * @param[in] lpOpenFcn Function to load the module
+ * @param[in] lpModuleName Module name, "_G" for base library
+ * @param[in] lpFunctions Array of functions to be undefined after load. Last
+ *            element must be NULL
+ */
+static VOID WhLuaLoadAndUndefine(
+    LPWHLUA lpWhLua,
+    lua_CFunction lpOpenFcn,
+    LPCSTR lpModuleName,
+    LPCSTR lpFunctions[]
+)
+{
+    INT iFunction = 0;
+    
+    /* Load the module, the module table gets placed on the top of the stack */
+    luaL_requiref(lpWhLua->lpLua, lpModuleName, lpOpenFcn, 1);
+    
+    /* Undefine the values */
+    while(NULL != lpFunctions[iFunction])
+    {
+        lua_pushnil(lpWhLua->lpLua);
+        lua_setfield(lpWhLua->lpLua, -2, lpFunctions[iFunction]);
+        
+        iFunction ++;
+    }
+    
+    /* Pop the module table */
+    lua_pop(lpWhLua->lpLua, 1);
+}
+
+
+/******************************************************************************/
+/*                            Lua Functions                                   */
+/******************************************************************************/
+
+/**
  * @brief Function to create RGB color
  * 
  * @param[in,out] lpLua
@@ -173,31 +208,6 @@ static int WhLuaNewTime(
 }
 
 /**
- * @brief Function to round down number to nearest integer value
- * 
- * @param[in,out] lpLua
- * 
- * @return Number of outputs on Lua stack
- */
-static int WhLuaFloor(
-    lua_State * lpLua
-)
-{
-    /* Check arguments */
-    if(1 != lua_gettop(lpLua) || !lua_isnumber(lpLua, 1))
-    {
-        lua_pushstring(lpLua, "incorrect argument");
-        lua_error(lpLua);
-        return 0;
-    }
-
-    /* Push converted value */
-    lua_pushinteger(lpLua, (lua_Integer)lua_tonumber(lpLua, 1));
-    
-    return 1;
-}
-
-/**
  * @brief Function to show custom Message Box
  * 
  * @param[in,out] lpLua
@@ -241,10 +251,23 @@ BOOL WhLuaInit(
     /* Initialize with no Lua code */
     lpWhLua->lpLuaCode = NULL;
     
+    /* Create quasi-safe sand box by loading only portion of the libraries and
+     * undefining potentially dangerous functions */
+    /* Load some of the Lua libraries */
+    WhLuaLoadAndUndefine(lpWhLua, luaopen_base, "_G", (LPCSTR []){"assert",
+        "collectgarbage", "dofile", "getmetatable", "loadfile", "load",
+        "loadstring", "print", "rawequal", "rawlen", "rawget", "rawset",
+        "setmetatable", NULL});
+    WhLuaLoadAndUndefine(lpWhLua, luaopen_string, LUA_STRLIBNAME,
+        (LPCSTR []){"dump", NULL});
+    WhLuaLoadAndUndefine(lpWhLua, luaopen_table, LUA_TABLIBNAME,
+        (LPCSTR []){NULL});
+    WhLuaLoadAndUndefine(lpWhLua, luaopen_math, LUA_MATHLIBNAME,
+        (LPCSTR []){NULL});
+    
     /* Register Lua Functions */
     lua_register(lpWhLua->lpLua, LUA_NEW_TIME_FCN, WhLuaNewTime);
     lua_register(lpWhLua->lpLua, LUA_RGB_FCN, WhLuaRgb);
-    lua_register(lpWhLua->lpLua, LUA_FLOOR_FCN, WhLuaFloor);
     lua_register(lpWhLua->lpLua, LUA_ALERT_FCN, WhLuaAlert);
 
     return TRUE;

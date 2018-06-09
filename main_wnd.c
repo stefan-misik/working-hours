@@ -24,6 +24,7 @@ typedef struct tagMAINWNDDATA
     COLORREF crWorkHoursCol;/**< Color of the working hours */   
     WHTIME whtLastUpdate;   /**< Time of last window update */
     LPWHLUA lpWhLua;        /**< Working hours state */
+    BOOL bShowLuaDebug;     /**< Are we showing Lua debug window */
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
@@ -273,8 +274,7 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->hWorkHoursFont = NULL;
     lpData->crWorkHoursCol = (COLORREF)GetSysColor(COLOR_BTNTEXT);
     lpData->whtLastUpdate.wHour = 0;
-    lpData->whtLastUpdate.wMinute = 0;
-    
+    lpData->whtLastUpdate.wMinute = 0;    
     lpData->lpWhLua = (LPWHLUA)HeapAlloc(g_hHeap, 0, sizeof(WHLUA));
     if(NULL != lpData)
     {
@@ -284,6 +284,7 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
             lpData->lpWhLua = NULL;
         }
     }
+    lpData->bShowLuaDebug = FALSE;
 
     return lpData;
 }
@@ -357,6 +358,27 @@ static BOOL OnRunAtStartup(
     /* Close all registry keys */
     RegCloseKey(hKey);
     return TRUE;
+}
+
+/**
+ * @brief Show the window displaying Lua debug messages
+ * 
+ * @param hwnd Main window handle
+ * @param bShow Show or hide the debug window
+ */
+static VOID OnDbgWnd(
+    HWND hwnd,
+    BOOL bShow
+)
+{
+    LPMAINWNDDATA lpData;
+    /* Get main window data */
+    lpData = GetMainWindowData(hwnd);
+    
+    lpData->bShowLuaDebug = bShow;
+    
+    CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND,
+        MF_BYCOMMAND | ((lpData->bShowLuaDebug) ? MF_CHECKED : MF_UNCHECKED));
 }
 
 /**
@@ -629,6 +651,10 @@ static INT_PTR OnMenuAccCommand(
         
         case IDM_EXIT:
             DestroyWindow(hwnd);
+            return TRUE;
+            
+        case IDM_DBG_WND:
+            OnDbgWnd(hwnd, !(lpData->bShowLuaDebug));
             return TRUE;
 
         case IDM_ABOUT:

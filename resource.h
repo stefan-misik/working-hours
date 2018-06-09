@@ -29,7 +29,9 @@
 #define IDR_MENU                        40000
     #define IDM_RUNATSTARTUP                40001
     #define IDM_EXIT                        40002
-    #define IDM_ABOUT                       40003
+    #define IDM_DBG_WND                     40003
+    #define IDM_EDIT                        40004
+    #define IDM_ABOUT                       40005
 
 #define IDR_TRAY_MENU                   41000
     #define IDM_SHOWHIDE                    41001

@@ -104,10 +104,13 @@ IDR_MENU MENU
 BEGIN
     POPUP "&Working-hours"
     BEGIN
-        MENUITEM "R&un at Startup",                 IDM_RUNATSTARTUP
+        MENUITEM "&Run at Startup",                 IDM_RUNATSTARTUP
+        MENUITEM SEPARATOR
+        MENUITEM "Script &Debug Console",           IDM_DBG_WND
+        MENUITEM "&Edit Script",                    IDM_EDIT
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                           IDM_EXIT
-    END    
+    END
     POPUP "&Help"
     BEGIN
         MENUITEM "&About",                          IDM_ABOUT
