@@ -2,6 +2,7 @@
 #include "resource.h"
 #include "defs.h"
 #include "main_wnd.h"
+#include "dbg_wnd.h"
 
 #include <lualib.h>
 
@@ -28,6 +29,12 @@
  * 
  */
 #define LUA_ALERT_FCN "WhAlert"
+
+/**
+ * @brief Name of the print function provided to print debug messages
+ * 
+ */
+#define LUA_PRINT_FCN "print"
 
 
 /**
@@ -153,6 +160,37 @@ static int WhLuaAlert(
     return 0;
 }
 
+/**
+ * @brief Function to log a debug message
+ * 
+ * @param[in,out] lpLua
+ * 
+ * @return Number of outputs on Lua stack
+ */
+static int WhLuaPrint(
+    lua_State * lpLua
+)
+{
+    INT iUpValIdx = lua_upvalueindex(1);
+    
+    if(0 < lua_gettop(lpLua) && lua_islightuserdata(lpLua, iUpValIdx))
+    {
+        LPWHLUA lpWhLua = lua_touserdata(lpLua, iUpValIdx);
+        
+        if(NULL != lpWhLua && NULL != lpWhLua->hwndDebugWnd)
+        {
+            LPCSTR lpMsg;
+            
+            /* Get The string */
+            lpMsg = lua_tostring(lpLua, -1);
+
+            /* Show the message */
+            DbgWndLog(lpWhLua->hwndDebugWnd, lpMsg);
+        }
+    }
+    return 0;
+}
+
 /******************************************************************************/
 /*                                Public                                      */
 /******************************************************************************/
@@ -164,6 +202,8 @@ BOOL WhLuaInit(
 {
     /* Parent window */
     lpWhLua->hwndParent = NULL;
+    /* Debug window */
+    lpWhLua->hwndDebugWnd = NULL;
     
     /* Create new Lua state */
     lpWhLua->lpLua = lua_newstate(WhLuaAllocator, (void *)lpWhLua);
@@ -189,6 +229,11 @@ BOOL WhLuaInit(
     
     /* Register Lua Functions */
     lua_register(lpWhLua->lpLua, LUA_ALERT_FCN, WhLuaAlert);
+    /* Register the print function as an closure with pointer to Lua working
+     * hours state as data */
+    lua_pushlightuserdata(lpWhLua->lpLua, (LPVOID)lpWhLua);
+    lua_pushcclosure(lpWhLua->lpLua, WhLuaPrint, 1);
+    lua_setglobal(lpWhLua->lpLua, LUA_PRINT_FCN);
 
     return TRUE;
 }
@@ -357,8 +402,14 @@ VOID WhLuaErrorMessage(
 
         if(NULL != lpMsg)
         {
-            MessageBoxA(lpWhLua->hwndParent, lpMsg, g_lpMessageCaption,
-                MB_OK | MB_ICONEXCLAMATION | MB_DEFBUTTON1);
+            /* Open the debug window if it is not opened already */
+            if(NULL == lpWhLua->hwndDebugWnd)
+            {
+                SendMessage(lpWhLua->hwndParent, WM_DBGWNDOPENCLOSE,
+                    (WPARAM)NULL, (LPARAM)NULL);
+            }
+            /* Log the message */
+            DbgWndLog(lpWhLua->hwndDebugWnd, lpMsg);
         }
         /* Pop the error message from the stack */
         lua_pop(lpWhLua->lpLua, 1);

@@ -3,7 +3,7 @@
 
 #include "win_common.h"
 
-#define WM_DBGWNDCLOSE (WM_USER + 1)
+#define WM_DBGWNDOPENCLOSE (WM_USER + 1)
 
 
 /**

@@ -367,24 +367,36 @@ static BOOL OnRunAtStartup(
  * @brief Show the window displaying Lua debug messages
  * 
  * @param hwnd Main window handle
+ * @param bShow Show or hide the debug window
  */
 static VOID OnDbgWnd(
-    HWND hwnd
+    HWND hwnd,
+    BOOL bShow
 )
 {
     LPMAINWNDDATA lpData;
     /* Get main window data */
     lpData = GetMainWindowData(hwnd);
     
-    if(NULL == lpData->hwndDebug)
+    if(bShow)
     {
+        /* Destroy already existing window */
+        if(NULL != lpData->hwndDebug)
+        {
+            DestroyWindow(lpData->hwndDebug);
+        }
+        
         lpData->hwndDebug = DbgWndCreate(hwnd);
         CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND, MF_BYCOMMAND | MF_CHECKED);
     }
     else
     {
-        DestroyWindow(lpData->hwndDebug);
-        lpData->hwndDebug = NULL;
+        if(NULL != lpData->hwndDebug)
+        {
+            DestroyWindow(lpData->hwndDebug);
+            lpData->hwndDebug = NULL;
+        }
+        
         CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND, MF_BYCOMMAND | MF_UNCHECKED);
     }
     
@@ -663,7 +675,7 @@ static INT_PTR OnMenuAccCommand(
             return TRUE;
             
         case IDM_DBG_WND:
-            OnDbgWnd(hwnd);
+            OnDbgWnd(hwnd, (NULL == lpData->hwndDebug));
             return TRUE;
 
         case IDM_ABOUT:
@@ -764,23 +776,27 @@ static INT_PTR OnCtlColorStatic(
 }
 
 /**
- * @brief Debug window is being closed
+ * @brief Debug window request to open/close
  * 
  * @param hwnd Main window handle
  * @param hwndDebug Debug window handle
  * 
  * @return TRUE if message is processed
  */
-static INT_PTR OnDbgWndClose(
+static INT_PTR OnDbgWndOpenClose(
     HWND hwnd,
     HWND hwndDebug
 )
 {
     LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
     
-    if(hwndDebug == lpData->hwndDebug)
+    if (NULL == hwndDebug)
     {
-        OnDbgWnd(hwnd);
+        OnDbgWnd(hwnd, TRUE);
+    }
+    else if(hwndDebug == lpData->hwndDebug)
+    {
+        OnDbgWnd(hwnd, FALSE);
     }
     
     return TRUE;
@@ -844,8 +860,8 @@ static INT_PTR CALLBACK DialogProc(
     case WM_CTLCOLORSTATIC:
         return OnCtlColorStatic(hwnd, (HDC)wParam, (HWND)lParam);
         
-    case WM_DBGWNDCLOSE:
-        return OnDbgWndClose(hwnd, (HWND)lParam);
+    case WM_DBGWNDOPENCLOSE:
+        return OnDbgWndOpenClose(hwnd, (HWND)lParam);
     }
     
     return FALSE;

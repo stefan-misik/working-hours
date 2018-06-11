@@ -8,14 +8,14 @@
 /*                               Private                                      */
 /******************************************************************************/
 
-#define DBG_BUFFER_LEN (16*1024)
+#define DBG_BUFFER_LEN (16 * 1024)
 
 /* Get debug window data pointer */
 #define GetDbgWindowData(hWnd) ((LPDBGWNDDATA)(GetWindowLongPtr((hWnd), \
                                                GWLP_USERDATA)))
 
 /* Calculate free space in the debug log buffer */
-#define GetFreeSpace(lpData) (DBG_BUFFER_LEN - (lpData)->iLogLength - 1)
+#define GetFreeBufferSpace(lpData) ((DBG_BUFFER_LEN) - (lpData)->iLogLength - 1)
 /**
  * @brief Debug window data structure
  * 
@@ -91,7 +91,7 @@ static BOOL EnsureBuffer(
     }
     
     /* Calcualte the missing space */
-    iRollDistance = iSpace - GetFreeSpace(lpData);
+    iRollDistance = iSpace - GetFreeBufferSpace(lpData);
     
     if(iRollDistance > 0)
     {
@@ -150,7 +150,7 @@ static BOOL OnInitDialog(
     
     /* Set the console window font */
     SendDlgItemMessage(hwnd, IDC_DBGCONSOLE, WM_SETFONT, 
-            (WPARAM)GetStockObject(OEM_FIXED_FONT), (LPARAM)TRUE);
+            (WPARAM)GetStockObject(ANSI_FIXED_FONT), (LPARAM)TRUE);
     
     return TRUE;
 }
@@ -167,7 +167,7 @@ static INT_PTR OnClose(
 )
 {
     /* Inform parent that debug window wants to be closed */
-    SendMessage(GetParent(hwnd), WM_DBGWNDCLOSE, 0, (LPARAM)hwnd);
+    SendMessage(GetParent(hwnd), WM_DBGWNDOPENCLOSE, 0, (LPARAM)hwnd);
     
     return TRUE;
 }
@@ -336,4 +336,8 @@ VOID DbgWndLog(
 
     /* Update the window text */
     SetDlgItemTextA(hwndDebug, IDC_DBGCONSOLE, lpData->strBuffer);
+    /* Move cursor to the end */
+    SendDlgItemMessage(hwndDebug, IDC_DBGCONSOLE, EM_SETSEL,
+        lpData->iLogLength - 1, lpData->iLogLength - 1);
+    SendDlgItemMessage(hwndDebug, IDC_DBGCONSOLE, EM_SCROLLCARET, 0, 0);
 }
