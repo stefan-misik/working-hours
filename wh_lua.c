@@ -24,18 +24,6 @@
 #define LUA_MINUTE_MEMBER "Minute"
 
 /**
- * @brief Function used to create time data table
- * 
- */
-#define LUA_NEW_TIME_FCN "WhNewTime"
-
-/**
- * @brief Function used to create RGB color
- * 
- */
-#define LUA_RGB_FCN "WhRgb"
-
-/**
  * @brief Function provided for debugging purposes
  * 
  */
@@ -142,72 +130,6 @@ static VOID WhLuaLoadAndUndefine(
 /******************************************************************************/
 
 /**
- * @brief Function to create RGB color
- * 
- * @param[in,out] lpLua
- * 
- * @return Number of outputs on Lua stack
- */
-static int WhLuaRgb(
-    lua_State * lpLua
-)
-{
-    COLORREF crRgb;
-    
-    /* Check arguments */
-    if(3 != lua_gettop(lpLua) ||
-        !lua_isnumber(lpLua, 1) || !lua_isnumber(lpLua, 2) ||
-        !lua_isnumber(lpLua, 3))
-    {
-        lua_pushstring(lpLua, "incorrect argument");
-        lua_error(lpLua);
-        return 0;
-    }
-
-    /* Get the color value */
-    crRgb = RGB(
-            (UCHAR)lua_tonumber(lpLua, 1),
-            (UCHAR)lua_tonumber(lpLua, 2),
-            (UCHAR)lua_tonumber(lpLua, 3)
-            );
-    
-    /* Push the color on the stack */
-    lua_pushinteger(lpLua, (lua_Integer)crRgb);
-    return 1;
-}
-
-/**
- * @brief Function to create time table in Lua
- * 
- * @param[in,out] lpLua
- * 
- * @return Number of outputs on Lua stack
- */
-static int WhLuaNewTime(
-    lua_State * lpLua
-)
-{
-    WHTIME wht;
-    
-    /* Check arguments */
-    if(2 != lua_gettop(lpLua) ||
-        !lua_isnumber(lpLua, 1) || !lua_isnumber(lpLua, 2))
-    {
-        lua_pushstring(lpLua, "incorrect argument");
-        lua_error(lpLua);
-        return 0;
-    }
-
-    /* Get the values */
-    wht.wHour = (WORD)lua_tonumber(lpLua, 1);
-    wht.wMinute = (WORD)lua_tonumber(lpLua, 2);
-    
-    /* Push the time on the stack */
-    WhLuaPushTime(lpLua, &wht);
-    return 1;
-}
-
-/**
  * @brief Function to show custom Message Box
  * 
  * @param[in,out] lpLua
@@ -266,8 +188,6 @@ BOOL WhLuaInit(
         (LPCSTR []){NULL});
     
     /* Register Lua Functions */
-    lua_register(lpWhLua->lpLua, LUA_NEW_TIME_FCN, WhLuaNewTime);
-    lua_register(lpWhLua->lpLua, LUA_RGB_FCN, WhLuaRgb);
     lua_register(lpWhLua->lpLua, LUA_ALERT_FCN, WhLuaAlert);
 
     return TRUE;
@@ -298,6 +218,15 @@ VOID WhLuaSetErrorParentWnd(
 )
 {
     lpWhLua->hwndParent = hwndParent;
+}
+
+/******************************************************************************/
+VOID WhLuaSetDebugWnd(
+    LPWHLUA lpWhLua,
+    HWND hwndDbg
+)
+{
+    lpWhLua->hwndDebugWnd = hwndDbg;
 }
 
 /******************************************************************************/
@@ -483,12 +412,20 @@ BOOL WhLuaToColor(
     INT iIndex
 )
 {
+    DWORD dwColor;
+    
     /* Verify the type */
     if(!lua_isnumber(lpLua, iIndex))
         return FALSE;
     
     /* Get the color */
-    *lpcrColor = (COLORREF)lua_tointeger(lpLua, iIndex);
+    dwColor = (DWORD)lua_tointeger(lpLua, iIndex);
+    
+    *lpcrColor = RGB(
+        GetBValue(dwColor),
+        GetGValue(dwColor),
+        GetRValue(dwColor)
+    );
     
     return TRUE;
 }

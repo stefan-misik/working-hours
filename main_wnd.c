@@ -7,6 +7,7 @@
 #include "about_dialog.h"
 #include "defs.h"
 #include "working_hours.h"
+#include "dbg_wnd.h"
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -24,11 +25,11 @@ typedef struct tagMAINWNDDATA
     COLORREF crWorkHoursCol;/**< Color of the working hours */   
     WHTIME whtLastUpdate;   /**< Time of last window update */
     LPWHLUA lpWhLua;        /**< Working hours state */
-    BOOL bShowLuaDebug;     /**< Are we showing Lua debug window */
+    HWND hwndDebug;         /**< Debug window handle */
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
-#define WM_TRAY_ICON WM_USER + 0
+#define WM_TRAY_ICON (WM_USER + 0)
 
 /* ID of the tray icon */
 #define TRAY_ICON_ID 0
@@ -41,8 +42,8 @@ typedef struct tagMAINWNDDATA
 #define WH_TIME_FORMAT "HH':'mm"
 
 /* Get Main window data pointer */
-#define GetMainWindowData(hWnd) (LPMAINWNDDATA)(GetWindowLongPtr((hWnd), \
-                                               GWLP_USERDATA))
+#define GetMainWindowData(hWnd) ((LPMAINWNDDATA)(GetWindowLongPtr((hWnd), \
+                                               GWLP_USERDATA)))
 
 /* Path to file containing the Lua code */
 #define WH_LUA_CODE_FILE "working-hours.lua"
@@ -226,6 +227,7 @@ static VOID ShowMainWnd(
         ShowWindow(hWnd, SW_HIDE);
     }
 }
+
 /**
  * @brief Destroy all objects in a Main Window data structure and free memory
  *        taken by this structure
@@ -246,8 +248,9 @@ static VOID DestroyMainWndData(
         {
             WhLuaDestroy(lpData->lpWhLua);
             HeapFree(g_hHeap, 0, lpData->lpWhLua);
-            lpData->lpWhLua = NULL;
         }
+        if(NULL != lpData->hwndDebug)
+            DestroyWindow(lpData->hwndDebug);
         
         HeapFree(g_hHeap, 0, lpData);
     }
@@ -284,7 +287,7 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
             lpData->lpWhLua = NULL;
         }
     }
-    lpData->bShowLuaDebug = FALSE;
+    lpData->hwndDebug = NULL;
 
     return lpData;
 }
@@ -364,21 +367,29 @@ static BOOL OnRunAtStartup(
  * @brief Show the window displaying Lua debug messages
  * 
  * @param hwnd Main window handle
- * @param bShow Show or hide the debug window
  */
 static VOID OnDbgWnd(
-    HWND hwnd,
-    BOOL bShow
+    HWND hwnd
 )
 {
     LPMAINWNDDATA lpData;
     /* Get main window data */
     lpData = GetMainWindowData(hwnd);
     
-    lpData->bShowLuaDebug = bShow;
+    if(NULL == lpData->hwndDebug)
+    {
+        lpData->hwndDebug = DbgWndCreate(hwnd);
+        CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND, MF_BYCOMMAND | MF_CHECKED);
+    }
+    else
+    {
+        DestroyWindow(lpData->hwndDebug);
+        lpData->hwndDebug = NULL;
+        CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND, MF_BYCOMMAND | MF_UNCHECKED);
+    }
     
-    CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND,
-        MF_BYCOMMAND | ((lpData->bShowLuaDebug) ? MF_CHECKED : MF_UNCHECKED));
+    /* Inform Lua module about debug window status change */
+    WhLuaSetDebugWnd(lpData->lpWhLua, lpData->hwndDebug);
 }
 
 /**
@@ -483,9 +494,7 @@ static BOOL OnInitDialog(
     /* Force an update working hours and leave time now */
     UpdateWorkingHours(hwnd, TRUE);
     UpdateLeaveTime(hwnd);
-    
-    
-    
+
     return TRUE;
 }
 
@@ -654,7 +663,7 @@ static INT_PTR OnMenuAccCommand(
             return TRUE;
             
         case IDM_DBG_WND:
-            OnDbgWnd(hwnd, !(lpData->bShowLuaDebug));
+            OnDbgWnd(hwnd);
             return TRUE;
 
         case IDM_ABOUT:
@@ -733,7 +742,7 @@ static INT_PTR OnTrayIconNotify(
  * @param hdcControl Device context of the control
  * @param hwndControl Control window handle
  * 
- * @return TRUE if message is processed 
+ * @return TRUE if message is processed
  */
 static INT_PTR OnCtlColorStatic(
     HWND hwnd,
@@ -752,6 +761,29 @@ static INT_PTR OnCtlColorStatic(
     }
     
     return FALSE;
+}
+
+/**
+ * @brief Debug window is being closed
+ * 
+ * @param hwnd Main window handle
+ * @param hwndDebug Debug window handle
+ * 
+ * @return TRUE if message is processed
+ */
+static INT_PTR OnDbgWndClose(
+    HWND hwnd,
+    HWND hwndDebug
+)
+{
+    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
+    
+    if(hwndDebug == lpData->hwndDebug)
+    {
+        OnDbgWnd(hwnd);
+    }
+    
+    return TRUE;
 }
 
 /**
@@ -811,6 +843,9 @@ static INT_PTR CALLBACK DialogProc(
     
     case WM_CTLCOLORSTATIC:
         return OnCtlColorStatic(hwnd, (HDC)wParam, (HWND)lParam);
+        
+    case WM_DBGWNDCLOSE:
+        return OnDbgWndClose(hwnd, (HWND)lParam);
     }
     
     return FALSE;
@@ -882,7 +917,7 @@ BOOL CreateMainWindow(
     else
     {
         /* Hide the window by default */
-        ShowMainWnd(g_hMainWnd, FALSE);
+        ShowMainWnd(g_hMainWnd, TRUE);
         return TRUE;
     }
 }

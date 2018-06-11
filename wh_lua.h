@@ -16,6 +16,8 @@ typedef struct tagWHLUA
     lua_State * lpLua;  /**< Lua interpreter state */
     LPSTR lpLuaCode;    /**< Current Lua Code */
     HWND hwndParent;    /**< Parent window used for error messages */
+    HWND hwndDebugWnd;  /**< Window used for printing the Lua debug messages,
+                         *   can be NULL */
 } WHLUA, *LPWHLUA;
 
 /**
@@ -57,6 +59,17 @@ VOID WhLuaDestroy(
 VOID WhLuaSetErrorParentWnd(
     LPWHLUA lpWhLua,
     HWND hwndParent
+);
+
+/**
+ * @brief Set the debug window for displaying Lua Messages
+ * 
+ * @param[out] lpWhLua Working hours Lua state
+ * @param hwndDbg Debug window handle, NULL do disable debug messages
+ */
+VOID WhLuaSetDebugWnd(
+    LPWHLUA lpWhLua,
+    HWND hwndDbg
 );
 
 /**
