@@ -214,10 +214,14 @@ static VOID ShowMainWnd(
     BOOL bShow
 )
 {
+    LPMAINWNDDATA lpData = GetMainWindowData(hWnd);
+    
     if(bShow)
     {
         SetForegroundWindow(hWnd);
         ShowWindow(hWnd, SW_SHOW);
+        if(NULL != lpData->hwndDebug)
+            ShowWindow(lpData->hwndDebug, SW_SHOW);
         
         /* Move windows to the screen with cursor */
         CenterWindow(hWnd);
@@ -225,6 +229,8 @@ static VOID ShowMainWnd(
     else
     {
         ShowWindow(hWnd, SW_HIDE);
+        if(NULL != lpData->hwndDebug)
+            ShowWindow(lpData->hwndDebug, SW_HIDE);
     }
 }
 
