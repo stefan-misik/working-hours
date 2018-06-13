@@ -7,6 +7,7 @@
 
 /* Icons */
 #define IDI_MAIN                        101
+#define IDI_LUA_LOGO                    102
 
 /* Dialog windows */
 #define IDD_MAIN_WND                    1000

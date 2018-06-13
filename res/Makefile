@@ -3,7 +3,7 @@
 CONVERT = convert
 CP = cp
 
-SVG = icon.svg
+SVG = icon.svg lua_logo.svg
 
 ################################################################################
 ICO  = $(SVG:.svg=.ico)
@@ -21,6 +21,7 @@ all: $(SVG) $(ICO)
 
 # Icon sizes
 $(call makeicodeps, icon,16 24 32 48 64 96 128 256 512)
+$(call makeicodeps, lua_logo,64 96)
 
 %.ico:
 	$(CONVERT) $^ $@ 

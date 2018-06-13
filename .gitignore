@@ -39,4 +39,5 @@ res/*.*.png
 *.swp
 
 # Lua files
-lua*
+lua*.tar.gz
+lua*/
