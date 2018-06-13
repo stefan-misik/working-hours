@@ -20,7 +20,7 @@ TAR = tar
 # Project settings
 PROJ	= working-hours
 SRC	= main.c main_wnd.c defs.c tray_icon.c about_dialog.c working_hours.c \
-          wh_lua.c dbg_wnd.c
+          wh_lua.c dbg_wnd.c dialog_resize.c
 RES	= resource.rc
 RES_DEP = default.lua icon.svg working-hours.manifest
 LUA_SRC = http://www.lua.org/ftp/lua-5.3.4.tar.gz

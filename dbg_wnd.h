@@ -7,7 +7,7 @@
 
 
 /**
- * @brief Create the show the debug window
+ * @brief Create the debug window
  * 
  * @param hwndParent Handle to the parent window
  * 

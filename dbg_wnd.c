@@ -1,5 +1,6 @@
 #include "dbg_wnd.h"
 #include "resource.h"
+#include "dialog_resize.h"
 #include <Strsafe.h>
 #include <winerror.h>
 #include <minwinbase.h>
@@ -25,6 +26,7 @@ typedef struct tagDBGWNDDATA
     CHAR strBuffer[DBG_BUFFER_LEN]; /**< Buffer for debug messages */
     INT iLogLength;                 /**< Number of characters in log up to the
                                      *   terminating zero */
+    DIALOGRESIZE dr;                /**< Dialog resize information */
 } DBGWNDDATA, *LPDBGWNDDATA;
 
 /**
@@ -37,10 +39,10 @@ static VOID DestroyDbgWndData(
     LPDBGWNDDATA lpData
 )
 {
+    DrDestroy(&(lpData->dr));
+
     if(NULL != lpData)
-    {
         HeapFree(g_hHeap, 0, lpData);
-    }
 }
 
 /**
@@ -60,6 +62,7 @@ static LPDBGWNDDATA CreateDbgWndData(VOID)
     /* Initialize main window data */
     lpData->iLogLength = 0;
     lpData->strBuffer[lpData->iLogLength] = '\0';
+    DrInit(&(lpData->dr), NULL, 0);
 
     return lpData;
 }
@@ -152,6 +155,13 @@ static BOOL OnInitDialog(
     SendDlgItemMessage(hwnd, IDC_DBGCONSOLE, WM_SETFONT, 
             (WPARAM)GetStockObject(ANSI_FIXED_FONT), (LPARAM)TRUE);
     
+    /* Configure auto-resize */
+    if(DrInit(&(lpData->dr), hwnd, 1))
+    {
+        DrConfigureControl(&(lpData->dr), 0, IDC_DBGCONSOLE, DR_ANCHOR_LEFT |
+            DR_ANCHOR_TOP | DR_ANCHOR_RIGHT | DR_ANCHOR_BOTTOM);
+    }
+    
     return TRUE;
 }
 
@@ -214,11 +224,37 @@ static INT_PTR OnSize(
     WORD wHeight
 )
 {
-    //LPDBGWND lpData = GetDbgWindowData(hwnd);
+    LPDBGWNDDATA lpData = GetDbgWindowData(hwnd);
     
     /* Resize the status bar */
     SendDlgItemMessage(hwnd, IDC_DBGSTATUSBAR, WM_SIZE, wType,
         MAKELPARAM(wWidth, wHeight));
+    
+    /* Auto-resize the controls */
+    DrDoResize(&(lpData->dr));
+    
+    return TRUE;
+}
+
+/**
+ * @brief Sent to a window when the size or position of the window is about to
+ *        change
+ * 
+ * @param hwnd Window handle
+ * @param[in,out] lpMinMax Min-max info
+ * 
+ * @return TRUE if message is processed
+ */
+static INT_PTR OnGetMinMaxInfo(
+    HWND hwnd,
+    LPMINMAXINFO lpMinMax
+)
+{
+    LPDBGWNDDATA lpData = GetDbgWindowData(hwnd);
+    
+    lpMinMax->ptMinTrackSize.x = lpData->dr.lOrigWidth;
+    lpMinMax->ptMinTrackSize.y = lpData->dr.lOrigHeight;
+    
     return TRUE;
 }
 
@@ -252,6 +288,9 @@ static INT_PTR CALLBACK DialogProc(
 
     case WM_SIZE:
         return OnSize(hwnd, wParam, LOWORD(lParam), HIWORD(lParam));
+
+    case WM_GETMINMAXINFO:
+        return OnGetMinMaxInfo(hwnd, (LPMINMAXINFO)lParam);
     }
     
     return FALSE;
