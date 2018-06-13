@@ -113,6 +113,25 @@ BEGIN
 END
 
 /******************************************************************************/
+IDD_LE_WND DIALOGEX 10,10,460,200
+STYLE   DS_SETFONT | DS_MODALFRAME | WS_POPUPWINDOW | WS_THICKFRAME
+CAPTION "Lua Script Editor"
+MENU IDR_EDITOR_MENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_LUA_EDIT, 7, 7, 446, 130, 
+                    WS_VSCROLL | ES_MULTILINE | WS_TABSTOP
+    GROUPBOX        "Testing Tools", IDC_LUA_TEST_GROUP, 7, 143, 236, 38
+    LTEXT           "", IDC_LUA_LOGO_ICON, 250, 143, 32, 32, SS_ICON
+    CONTROL         "Read more about Lua language on its <a>web</a>",
+                    IDC_LUA_LINK, "SysLink", WS_VISIBLE | WS_TABSTOP,
+                    295, 172, 150, 8
+
+    CONTROL         "", IDC_LESTATUSBAR, STATUSCLASSNAME, SBARS_SIZEGRIP |
+                    WS_CHILD | WS_VISIBLE, 0, 0, 0, 0
+END
+
+/******************************************************************************/
 IDR_MENU MENU
 BEGIN
     POPUP "&Working-hours"
@@ -131,6 +150,20 @@ BEGIN
 END
 
 /******************************************************************************/
+IDR_EDITOR_MENU MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New",                            IDM_EDITOR_NEW
+        MENUITEM "&Open...",                        IDM_EDITOR_OPEN
+        MENUITEM "&Save",                           IDM_EDITOR_SAVE
+        MENUITEM "Save &As..",                      IDM_EDITOR_SAVEAS
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                           IDM_EDITOR_EXIT
+    END 
+END
+
+/******************************************************************************/
 IDR_TRAY_MENU MENU
 BEGIN
     POPUP ""
@@ -141,6 +174,14 @@ BEGIN
         MENUITEM "&About",          IDM_ABOUT
         MENUITEM "E&xit",           IDM_EXIT
     END
+END
+
+/******************************************************************************/
+IDR_ACC ACCELERATORS
+BEGIN
+    "N", IDM_EDITOR_NEW,  VIRTKEY, CONTROL, NOINVERT
+    "O", IDM_EDITOR_OPEN, VIRTKEY, CONTROL, NOINVERT
+    "S", IDM_EDITOR_SAVE, VIRTKEY, CONTROL, NOINVERT
 END
 
 /******************************************************************************/

@@ -23,12 +23,12 @@ static INT_PTR CALLBACK AboutProc(
             IMAGE_ICON,
             GetSystemMetrics(SM_CXICON) * 2,
             GetSystemMetrics(SM_CYICON) * 2,
-            0);        
+            LR_SHARED);        
 
         if(NULL != hAppIco)
         {
             SendDlgItemMessage(hwndDlg, IDC_APP_ICON, STM_SETICON, 
-                (WPARAM) hAppIco, 0);                        
+                (WPARAM) hAppIco, 0);
         }
 
         SendDlgItemMessage(hwndDlg, IDC_LICTEXT, WM_SETFONT, 

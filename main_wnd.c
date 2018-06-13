@@ -8,6 +8,7 @@
 #include "defs.h"
 #include "working_hours.h"
 #include "dbg_wnd.h"
+#include "lua_edit.h"
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -26,6 +27,7 @@ typedef struct tagMAINWNDDATA
     WHTIME whtLastUpdate;   /**< Time of last window update */
     LPWHLUA lpWhLua;        /**< Working hours state */
     HWND hwndDebug;         /**< Debug window handle */
+    HWND hwndEdit;          /**< Lua edit window handle */
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
@@ -257,6 +259,8 @@ static VOID DestroyMainWndData(
         }
         if(NULL != lpData->hwndDebug)
             DestroyWindow(lpData->hwndDebug);
+        if(NULL != lpData->hwndEdit)
+            DestroyWindow(lpData->hwndEdit);
         
         HeapFree(g_hHeap, 0, lpData);
     }
@@ -294,6 +298,7 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
         }
     }
     lpData->hwndDebug = NULL;
+    lpData->hwndEdit = NULL;
 
     return lpData;
 }
@@ -408,6 +413,44 @@ static VOID OnDbgWnd(
     
     /* Inform Lua module about debug window status change */
     WhLuaSetDebugWnd(lpData->lpWhLua, lpData->hwndDebug);
+}
+
+/**
+ * @brief Show the window displaying Lua script editor
+ * 
+ * @param hwnd Main window handle
+ * @param bShow Show or hide the Lua edit window
+ */
+static VOID OnLeWnd(
+    HWND hwnd,
+    BOOL bShow
+)
+{
+    LPMAINWNDDATA lpData;
+    /* Get main window data */
+    lpData = GetMainWindowData(hwnd);
+    
+    if(bShow)
+    {
+        /* Destroy already existing window */
+        if(NULL != lpData->hwndEdit)
+        {
+            DestroyWindow(lpData->hwndEdit);
+        }
+        
+        lpData->hwndEdit = LeWndCreate(hwnd);
+        CheckMenuItem(GetMenu(hwnd), IDM_EDIT, MF_BYCOMMAND | MF_CHECKED);
+    }
+    else
+    {
+        if(NULL != lpData->hwndEdit)
+        {
+            DestroyWindow(lpData->hwndEdit);
+            lpData->hwndEdit = NULL;
+        }
+        
+        CheckMenuItem(GetMenu(hwnd), IDM_EDIT, MF_BYCOMMAND | MF_UNCHECKED);
+    }
 }
 
 /**
@@ -683,6 +726,10 @@ static INT_PTR OnMenuAccCommand(
         case IDM_DBG_WND:
             OnDbgWnd(hwnd, (NULL == lpData->hwndDebug));
             return TRUE;
+        
+        case IDM_EDIT:
+            OnLeWnd(hwnd, (NULL == lpData->hwndEdit));
+            return TRUE;
 
         case IDM_ABOUT:
             ShowAboutDialog(hwnd);
@@ -809,6 +856,33 @@ static INT_PTR OnDbgWndOpenClose(
 }
 
 /**
+ * @brief Lua edit window request to open/close
+ * 
+ * @param hwnd Main window handle
+ * @param hwndLe Lua edit window handle
+ * 
+ * @return TRUE if message is processed
+ */
+static INT_PTR OnLeWndOpenClose(
+    HWND hwnd,
+    HWND hwndLe
+)
+{
+    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
+    
+    if (NULL == hwndLe)
+    {
+        OnLeWnd(hwnd, TRUE);
+    }
+    else if(hwndLe == lpData->hwndEdit)
+    {
+        OnLeWnd(hwnd, FALSE);
+    }
+    
+    return TRUE;
+}
+
+/**
  * @brief Main window dialog procedure
  * 
  * @param hwnd Main Window handle
@@ -868,6 +942,9 @@ static INT_PTR CALLBACK DialogProc(
         
     case WM_DBGWNDOPENCLOSE:
         return OnDbgWndOpenClose(hwnd, (HWND)lParam);
+
+    case WM_LEWNDOPENCLOSE:
+        return OnLeWndOpenClose(hwnd, (HWND)lParam);
     }
     
     return FALSE;

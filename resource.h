@@ -27,19 +27,35 @@
     #define IDC_MAILTO                      1029
 
 #define IDD_DBG_WND                     1030
-    #define IDC_DBGCONSOLE                  1031
-    #define IDC_DBGSTATUSBAR                1032
+    #define IDC_DBGCONSOLE                  1032
+    #define IDC_DBGSTATUSBAR                1039
+
+#define IDD_LE_WND                      1040
+    #define IDC_LUA_EDIT                    1041
+    #define IDC_LUA_LOGO_ICON               1042
+    #define IDC_LUA_LINK                    1043
+    #define IDC_LUA_TEST_GROUP              1044
+    #define IDC_LESTATUSBAR                 1049
 
 /* Menus */
-#define IDR_MENU                        40000
-    #define IDM_RUNATSTARTUP                40001
-    #define IDM_EXIT                        40002
-    #define IDM_DBG_WND                     40003
-    #define IDM_EDIT                        40004
-    #define IDM_ABOUT                       40005
+#define IDR_MENU                        4000
+    #define IDM_RUNATSTARTUP                4001
+    #define IDM_EXIT                        4002
+    #define IDM_DBG_WND                     4003
+    #define IDM_EDIT                        4004
+    #define IDM_ABOUT                       4005
 
-#define IDR_TRAY_MENU                   41000
-    #define IDM_SHOWHIDE                    41001
+#define IDR_EDITOR_MENU                 4100
+    #define IDM_EDITOR_NEW                  4001
+    #define IDM_EDITOR_OPEN                 4002
+    #define IDM_EDITOR_SAVE                 4003
+    #define IDM_EDITOR_SAVEAS               4004
+    #define IDM_EDITOR_EXIT                 4005
+
+#define IDR_TRAY_MENU                   4200
+    #define IDM_SHOWHIDE                    4201
+
+#define IDR_ACC                         5000
 
 /* Strings */
 #define IDS_MAIN_ERROR                  1

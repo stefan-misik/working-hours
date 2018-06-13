@@ -27,7 +27,7 @@ INT WINAPI wWinMain(
         return -1;
 
     /* Store main instance handle */
-	g_hInstance = hInstance;  
+    g_hInstance = hInstance;  
 
     /* Get Process heap */
     g_hHeap = GetProcessHeap();
@@ -45,9 +45,9 @@ INT WINAPI wWinMain(
         return 1;
     }
     
-	/* Enter the message loop */
-	while(GetMessage(&msg, NULL, 0, 0) > 0)
-	{
+    /* Enter the message loop */
+    while(GetMessage(&msg, NULL, 0, 0) > 0)
+    {
         if(FALSE == IsDialogMessage(g_hMainWnd, &msg))
         {
             TranslateMessage(&msg);
