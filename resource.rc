@@ -121,11 +121,10 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     EDITTEXT        IDC_LUA_EDIT, 7, 7, 446, 130, 
                     WS_VSCROLL | ES_MULTILINE | WS_TABSTOP
-    GROUPBOX        "Testing Tools", IDC_LUA_TEST_GROUP, 7, 143, 236, 38
-    LTEXT           "", IDC_LUA_LOGO_ICON, 250, 143, 32, 32, SS_ICON
-    CONTROL         "Read more about Lua language on its <a>web</a>",
+    LTEXT           "", IDC_LUA_LOGO_ICON, 320, 143, 32, 32, SS_ICON
+    CONTROL         "Read more about\r\nLua language on its <a>web</a>",
                     IDC_LUA_LINK, "SysLink", WS_VISIBLE | WS_TABSTOP,
-                    295, 172, 150, 8
+                    370, 155, 83, 20
 
     CONTROL         "", IDC_LESTATUSBAR, STATUSCLASSNAME, SBARS_SIZEGRIP |
                     WS_CHILD | WS_VISIBLE, 0, 0, 0, 0
@@ -154,13 +153,28 @@ IDR_EDITOR_MENU MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&New",                            IDM_EDITOR_NEW
-        MENUITEM "&Open...",                        IDM_EDITOR_OPEN
-        MENUITEM "&Save",                           IDM_EDITOR_SAVE
-        MENUITEM "Save &As..",                      IDM_EDITOR_SAVEAS
+        MENUITEM "&New\tCtrl+N",                    IDM_EDITOR_NEW
+        MENUITEM "&Open...\tCtrl+O",                IDM_EDITOR_OPEN
+        MENUITEM "&Save\tCtrl+S",                   IDM_EDITOR_SAVE
+        MENUITEM "Save &As...",                     IDM_EDITOR_SAVEAS
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                           IDM_EDITOR_EXIT
-    END 
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",                   IDM_EDITOR_UNDO
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",                    IDM_EDITOR_CUT
+        MENUITEM "&Copy\tCtrl+C",                   IDM_EDITOR_COPY
+        MENUITEM "&Paste\tCtrl+V",                  IDM_EDITOR_PASTE
+        MENUITEM "De&lete\tDel",                    IDM_EDITOR_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "Select &All\tCtrl+A",             IDM_EDITOR_SELALL
+    END
+    POPUP "&Script"
+    BEGIN
+        MENUITEM "&Run\tF6",                        IDM_EDITOR_RUN
+    END
 END
 
 /******************************************************************************/
@@ -179,9 +193,11 @@ END
 /******************************************************************************/
 IDR_ACC ACCELERATORS
 BEGIN
-    "N", IDM_EDITOR_NEW,  VIRTKEY, CONTROL, NOINVERT
-    "O", IDM_EDITOR_OPEN, VIRTKEY, CONTROL, NOINVERT
-    "S", IDM_EDITOR_SAVE, VIRTKEY, CONTROL, NOINVERT
+    "^N",  IDM_EDITOR_NEW,    VIRTKEY
+    "^O",  IDM_EDITOR_OPEN,   VIRTKEY
+    "^S",  IDM_EDITOR_SAVE,   VIRTKEY
+    "^A",  IDM_EDITOR_SELALL, VIRTKEY
+    VK_F6, IDM_EDITOR_RUN,    VIRTKEY
 END
 
 /******************************************************************************/

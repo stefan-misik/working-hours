@@ -1,6 +1,7 @@
 #include "lua_edit.h"
 #include "resource.h"
 #include "dialog_resize.h"
+#include "accelerators.h"
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -107,17 +108,18 @@ static BOOL OnInitDialog(
             (WPARAM)GetStockObject(ANSI_FIXED_FONT), (LPARAM)TRUE);
 
     /* Configure auto-resize */
-    if(DrInit(&(lpData->dr), hwnd, 4))
+    if(DrInit(&(lpData->dr), hwnd, 3))
     {
         DrConfigureControl(&(lpData->dr), 0, IDC_LUA_EDIT, DR_ANCHOR_LEFT |
             DR_ANCHOR_TOP | DR_ANCHOR_RIGHT | DR_ANCHOR_BOTTOM);
-        DrConfigureControl(&(lpData->dr), 1, IDC_LUA_TEST_GROUP,
-            DR_ANCHOR_LEFT | DR_ANCHOR_RIGHT | DR_ANCHOR_BOTTOM);
-        DrConfigureControl(&(lpData->dr), 2, IDC_LUA_LOGO_ICON,
+        DrConfigureControl(&(lpData->dr), 1, IDC_LUA_LOGO_ICON,
             DR_ANCHOR_RIGHT | DR_ANCHOR_BOTTOM);
-        DrConfigureControl(&(lpData->dr), 3, IDC_LUA_LINK,
+        DrConfigureControl(&(lpData->dr), 2, IDC_LUA_LINK,
             DR_ANCHOR_RIGHT | DR_ANCHOR_BOTTOM);
     }
+    
+    /* Register for receiving the accelerators */
+    AccRegisterWindow(hwnd);
     
     return TRUE;
 }
@@ -178,10 +180,50 @@ static INT_PTR OnMenuAccCommand(
 )
 {
     switch(wID)
-    {        
-        case IDM_EDITOR_EXIT:
-            OnClose(hwnd);
+    {
+    case IDM_EDITOR_NEW:
+        SetDlgItemText(hwnd, IDC_LUA_EDIT, TEXT(""));
+        return TRUE;
+
+    case IDM_EDITOR_OPEN:
+        return TRUE;
+
+    case IDM_EDITOR_SAVE:
+        return TRUE;
+
+    case IDM_EDITOR_SAVEAS:
+        return TRUE;
+
+    case IDM_EDITOR_EXIT:
+        OnClose(hwnd);
+        return TRUE;
+
+    case IDM_EDITOR_UNDO:
+        SendDlgItemMessage(hwnd, IDC_LUA_EDIT, EM_UNDO, 0, 0);
+        return TRUE;
+
+    case IDM_EDITOR_CUT:
+    case IDM_EDITOR_COPY:
+        /* Copy the text HERE */
+        
+        if(IDM_EDITOR_COPY == wID)
             return TRUE;
+        
+    case IDM_EDITOR_DELETE:
+        SendDlgItemMessage(hwnd, IDC_LUA_EDIT, EM_REPLACESEL, TRUE,
+            (LPARAM)TEXT(""));
+        return TRUE;
+        return TRUE;
+
+    case IDM_EDITOR_PASTE:
+        return TRUE;
+
+    case IDM_EDITOR_SELALL:
+        SendDlgItemMessage(hwnd, IDC_LUA_EDIT, EM_SETSEL, 0, -1);
+        return TRUE;
+    
+    case IDM_EDITOR_RUN:
+        return TRUE;
     }
     return FALSE;
 }
@@ -238,6 +280,9 @@ static INT_PTR OnDestroy(
     /* Remove pointer to non-existing data */
     SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)NULL);
 
+    /* Unregister from receiving the accelerators */
+    AccRegisterWindow(NULL);
+    
     return TRUE;
 }
 

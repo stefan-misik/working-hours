@@ -34,7 +34,6 @@
     #define IDC_LUA_EDIT                    1041
     #define IDC_LUA_LOGO_ICON               1042
     #define IDC_LUA_LINK                    1043
-    #define IDC_LUA_TEST_GROUP              1044
     #define IDC_LESTATUSBAR                 1049
 
 /* Menus */
@@ -51,6 +50,13 @@
     #define IDM_EDITOR_SAVE                 4003
     #define IDM_EDITOR_SAVEAS               4004
     #define IDM_EDITOR_EXIT                 4005
+    #define IDM_EDITOR_UNDO                 4006
+    #define IDM_EDITOR_CUT                  4007
+    #define IDM_EDITOR_COPY                 4008
+    #define IDM_EDITOR_PASTE                4009
+    #define IDM_EDITOR_DELETE               4010
+    #define IDM_EDITOR_SELALL               4011
+    #define IDM_EDITOR_RUN                  4012
 
 #define IDR_TRAY_MENU                   4200
     #define IDM_SHOWHIDE                    4201

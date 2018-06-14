@@ -224,6 +224,8 @@ static VOID ShowMainWnd(
         ShowWindow(hWnd, SW_SHOW);
         if(NULL != lpData->hwndDebug)
             ShowWindow(lpData->hwndDebug, SW_SHOW);
+        if(NULL != lpData->hwndEdit)
+            ShowWindow(lpData->hwndEdit, SW_SHOW);
         
         /* Move windows to the screen with cursor */
         CenterWindow(hWnd);
@@ -233,6 +235,8 @@ static VOID ShowMainWnd(
         ShowWindow(hWnd, SW_HIDE);
         if(NULL != lpData->hwndDebug)
             ShowWindow(lpData->hwndDebug, SW_HIDE);
+        if(NULL != lpData->hwndEdit)
+            ShowWindow(lpData->hwndEdit, SW_HIDE);
     }
 }
 
