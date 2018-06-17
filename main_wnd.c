@@ -25,7 +25,8 @@ typedef struct tagMAINWNDDATA
     HFONT hWorkHoursFont;   /**< Font for the hours worked in the dialog box */
     COLORREF crWorkHoursCol;/**< Color of the working hours */   
     WHTIME whtLastUpdate;   /**< Time of last window update */
-    LPWHLUA lpWhLua;        /**< Working hours state */
+    WHLUA WhLua;            /**< Working hours state */
+    LPSTR lpLuaCode;        /**< String containing the current Lua code */
     HWND hwndDebug;         /**< Debug window handle */
     HWND hwndEdit;          /**< Lua edit window handle */
 } MAINWNDDATA, *LPMAINWNDDATA;
@@ -86,7 +87,7 @@ static VOID UpdateWorkingHours(
         WhSystimeToWht(&whtArrival, &st);
 
         /* Calculate current time spent working */
-        if(!WhCalculate(lpData->lpWhLua, &whtArrival, &whtNow, &whtWorked,
+        if(!WhCalculate(&(lpData->WhLua), &whtArrival, &whtNow, &whtWorked,
                 &(lpData->crWorkHoursCol)))
             return;
         
@@ -139,7 +140,7 @@ static VOID UpdateLeaveTime(
     WhSystimeToWht(&whtArrival, &st);
 
     /* Calculate leave time */
-    if(!WhLeaveTime(lpData->lpWhLua, &whtArrival, &whtLeave))
+    if(!WhLeaveTime(&(lpData->WhLua), &whtArrival, &whtLeave))
         return;
 
     /* Convert */
@@ -256,11 +257,9 @@ static VOID DestroyMainWndData(
             DestroyMenu(lpData->hTrayIconMenu);
         if(NULL != lpData->hWorkHoursFont)
             DeleteObject(lpData->hWorkHoursFont);
-        if(NULL != lpData->lpWhLua)
-        {
-            WhLuaDestroy(lpData->lpWhLua);
-            HeapFree(g_hHeap, 0, lpData->lpWhLua);
-        }
+        WhLuaDestroy(&(lpData->WhLua));
+        if(NULL != lpData->lpLuaCode)
+            HeapFree(g_hHeap,0, lpData->lpLuaCode);
         if(NULL != lpData->hwndDebug)
             DestroyWindow(lpData->hwndDebug);
         if(NULL != lpData->hwndEdit)
@@ -291,16 +290,9 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->hWorkHoursFont = NULL;
     lpData->crWorkHoursCol = (COLORREF)GetSysColor(COLOR_BTNTEXT);
     lpData->whtLastUpdate.wHour = 0;
-    lpData->whtLastUpdate.wMinute = 0;    
-    lpData->lpWhLua = (LPWHLUA)HeapAlloc(g_hHeap, 0, sizeof(WHLUA));
-    if(NULL != lpData)
-    {
-        if(!WhLuaInit(lpData->lpWhLua))
-        {
-            HeapFree(g_hHeap, 0, lpData->lpWhLua);
-            lpData->lpWhLua = NULL;
-        }
-    }
+    lpData->whtLastUpdate.wMinute = 0;
+    WhLuaInit(&(lpData->WhLua));
+    lpData->lpLuaCode = NULL;
     lpData->hwndDebug = NULL;
     lpData->hwndEdit = NULL;
 
@@ -416,7 +408,7 @@ static VOID OnDbgWnd(
     }
     
     /* Inform Lua module about debug window status change */
-    WhLuaSetDebugWnd(lpData->lpWhLua, lpData->hwndDebug);
+    WhLuaSetDebugWnd(&(lpData->WhLua), lpData->hwndDebug);
 }
 
 /**
@@ -500,6 +492,20 @@ static VOID IsRegisteredToRunAtStartup(
 }
 
 /******************************************************************************/
+VOID LuaSetCode(
+    LPMAINWNDDATA lpData,
+    LPSTR lpNewLuaCode
+)
+{
+    if(NULL != lpData->lpLuaCode)
+    {
+        HeapFree(g_hHeap, 0, lpData->lpLuaCode);
+    }
+    
+    lpData->lpLuaCode = lpNewLuaCode;
+}
+
+/******************************************************************************/
 /*                         Windows Messages                                   */
 /******************************************************************************/
 
@@ -545,14 +551,15 @@ static BOOL OnInitDialog(
         (WPARAM)lpData->hWorkHoursFont, MAKELPARAM(TRUE, 0));
     
     /* Set window handle for parenting Lua error message-boxes */
-    WhLuaSetErrorParentWnd(lpData->lpWhLua, hwnd);
+    WhLuaSetErrorParentWnd(&(lpData->WhLua), hwnd);
     /* Load the default Lua code */
     lpLuaCode = WhLuaLoadCode(TEXT(WH_LUA_CODE_FILE));
     if(NULL == lpLuaCode)
         lpLuaCode = WhLuaLoadDefaultCode();
     /* Set the loaded Lua code */
-    if(!WhLuaSetCode(lpData->lpWhLua, lpLuaCode))
-        WhLuaErrorMessage(lpData->lpWhLua);
+    LuaSetCode(lpData, lpLuaCode);
+    if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
+        WhLuaErrorMessage(&(lpData->WhLua));
             
     /* Start working hours update timer */
     SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);

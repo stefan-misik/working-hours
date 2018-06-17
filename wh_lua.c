@@ -196,7 +196,7 @@ static int WhLuaPrint(
 /******************************************************************************/
 
 /******************************************************************************/
-BOOL WhLuaInit(
+VOID WhLuaInit(
     LPWHLUA lpWhLua
 )
 {
@@ -204,14 +204,35 @@ BOOL WhLuaInit(
     lpWhLua->hwndParent = NULL;
     /* Debug window */
     lpWhLua->hwndDebugWnd = NULL;
+    /* Lua state */
+    lpWhLua->lpLua = NULL;
+}
+
+/******************************************************************************/
+VOID WhLuaDestroy(
+    LPWHLUA lpWhLua
+)
+{
+    if(NULL != lpWhLua->lpLua)
+    {
+        lua_close(lpWhLua->lpLua);
+        lpWhLua->lpLua = NULL;
+    }
+}
+
+/******************************************************************************/
+BOOL WhLuaReset(
+    LPWHLUA lpWhLua
+)
+{
+    /* Close old lua state */
+    if(NULL != lpWhLua->lpLua)
+        lua_close(lpWhLua->lpLua);
     
     /* Create new Lua state */
     lpWhLua->lpLua = lua_newstate(WhLuaAllocator, (void *)lpWhLua);
     if(NULL == lpWhLua->lpLua)
         return FALSE;
-    
-    /* Initialize with no Lua code */
-    lpWhLua->lpLuaCode = NULL;
     
     /* Create quasi-safe sand box by loading only portion of the libraries and
      * undefining potentially dangerous functions */
@@ -234,26 +255,8 @@ BOOL WhLuaInit(
     lua_pushlightuserdata(lpWhLua->lpLua, (LPVOID)lpWhLua);
     lua_pushcclosure(lpWhLua->lpLua, WhLuaPrint, 1);
     lua_setglobal(lpWhLua->lpLua, LUA_PRINT_FCN);
-
-    return TRUE;
-}
-
-/******************************************************************************/
-VOID WhLuaDestroy(
-    LPWHLUA lpWhLua
-)
-{
-    if(NULL != lpWhLua->lpLua)
-    {
-        lua_close(lpWhLua->lpLua);
-        lpWhLua->lpLua = NULL;
-    }
     
-    if(NULL != lpWhLua->lpLuaCode)
-    {
-        HeapFree(g_hHeap, 0, lpWhLua->lpLuaCode);
-        lpWhLua->lpLuaCode = NULL;
-    }
+    return TRUE;
 }
 
 /******************************************************************************/
@@ -272,118 +275,6 @@ VOID WhLuaSetDebugWnd(
 )
 {
     lpWhLua->hwndDebugWnd = hwndDbg;
-}
-
-/******************************************************************************/
-BOOL WhLuaSetCode(
-    LPWHLUA lpWhLua,
-    LPSTR lpNewLuaCode
-)
-{
-    /* Load string into the Lua state */
-    if(0 != luaL_dostring(lpWhLua->lpLua, lpNewLuaCode))
-        return FALSE;
-    
-    if(NULL != lpWhLua->lpLuaCode)
-    {
-        HeapFree(g_hHeap, 0, lpWhLua->lpLuaCode);
-    }
-    
-    lpWhLua->lpLuaCode = lpNewLuaCode;
-    
-    return TRUE;
-}
-
-/******************************************************************************/
-LPSTR WhLuaLoadCode(
-    LPCTSTR lpFile
-)
-{
-    HANDLE hFile;
-    DWORD dwFileSize, dwBytesRead;
-    LPSTR lpLuaCode;
-    
-    /* Try to open the Lua source file */
-    hFile = CreateFile(lpFile, GENERIC_READ, FILE_SHARE_READ, NULL,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if(hFile == INVALID_HANDLE_VALUE)
-        return NULL;
-
-    /* Get the file size */
-    dwFileSize = GetFileSize(hFile, NULL);
-    /* Check if file does not exceeds the maximum size */
-    if(dwFileSize > LUA_MAX_FILE_SIZE)
-    {
-        CloseHandle(hFile);
-        return NULL;
-    }
-    
-    /* Allocate buffer */
-    lpLuaCode = (LPSTR)HeapAlloc(g_hHeap, 0, dwFileSize + 1);
-    if(NULL == lpLuaCode)
-    {
-        CloseHandle(hFile);
-        return NULL;
-    }
-    
-    /* Read the file */
-    if(!ReadFile(hFile, lpLuaCode, dwFileSize, &dwBytesRead, NULL) ||
-            dwBytesRead != dwFileSize)
-    {
-        HeapFree(g_hHeap, 0, lpLuaCode);
-        CloseHandle(hFile);
-        return NULL;
-    }
-    
-    /* Close the file */
-    CloseHandle(hFile);
-    
-    /* Add terminating zero */
-    lpLuaCode[dwFileSize] = '\0';
-    
-    return lpLuaCode;
-}
-
-/******************************************************************************/
-LPSTR WhLuaLoadDefaultCode(VOID)
-{
-    HRSRC hrscLua;
-    HGLOBAL hLua;
-    LPVOID lpOrigLua;
-    DWORD dwLuaLength;
-    LPSTR lpNewLua;
-    
-    /* Find the Lua code resource */
-    hrscLua = FindResource(g_hInstance,
-        MAKEINTRESOURCE(IDR_DEFAULT_LUA), RT_RCDATA);
-    /* Was resource found */
-    if(NULL == hrscLua)
-        return NULL;
-
-    /* Load the Lua code resource */
-    hLua = LoadResource(NULL, hrscLua);
-    /* Was resource loaded */
-    if(NULL == hLua)
-        return NULL;
-    
-    /* Get the Lua code */
-    dwLuaLength = SizeofResource(g_hInstance, hrscLua);
-    lpOrigLua = LockResource(hLua);
-    /* Verify that resource was obtained */
-    if(NULL == lpOrigLua || 0 == dwLuaLength)
-        return NULL;
-    
-    /* Allocate buffer for Lua code string, add one byte for terminating zero */
-    lpNewLua = HeapAlloc(g_hHeap, 0, dwLuaLength + 1);
-    if(NULL == lpNewLua)
-        return NULL;
-    
-    /* Copy Buffer */
-    CopyMemory(lpNewLua, lpOrigLua, dwLuaLength);
-    /* Add terminating zero */
-    lpNewLua[dwLuaLength] = '\0';
-           
-    return lpNewLua;
 }
 
 /******************************************************************************/
@@ -478,5 +369,112 @@ BOOL WhLuaToColor(
         GetRValue(dwColor)
     );
     
+    return TRUE;
+}
+
+/******************************************************************************/
+LPSTR WhLuaLoadCode(
+    LPCTSTR lpFile
+)
+{
+    HANDLE hFile;
+    DWORD dwFileSize, dwBytesRead;
+    LPSTR lpLuaCode;
+    
+    /* Try to open the Lua source file */
+    hFile = CreateFile(lpFile, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if(hFile == INVALID_HANDLE_VALUE)
+        return NULL;
+
+    /* Get the file size */
+    dwFileSize = GetFileSize(hFile, NULL);
+    /* Check if file does not exceeds the maximum size */
+    if(dwFileSize > LUA_MAX_FILE_SIZE)
+    {
+        CloseHandle(hFile);
+        return NULL;
+    }
+    
+    /* Allocate buffer */
+    lpLuaCode = (LPSTR)HeapAlloc(g_hHeap, 0, dwFileSize + 1);
+    if(NULL == lpLuaCode)
+    {
+        CloseHandle(hFile);
+        return NULL;
+    }
+    
+    /* Read the file */
+    if(!ReadFile(hFile, lpLuaCode, dwFileSize, &dwBytesRead, NULL) ||
+            dwBytesRead != dwFileSize)
+    {
+        HeapFree(g_hHeap, 0, lpLuaCode);
+        CloseHandle(hFile);
+        return NULL;
+    }
+    
+    /* Close the file */
+    CloseHandle(hFile);
+    
+    /* Add terminating zero */
+    lpLuaCode[dwFileSize] = '\0';
+    
+    return lpLuaCode;
+}
+
+/******************************************************************************/
+LPSTR WhLuaLoadDefaultCode(
+    VOID
+)
+{
+    HRSRC hrscLua;
+    HGLOBAL hLua;
+    LPVOID lpOrigLua;
+    DWORD dwLuaLength;
+    LPSTR lpNewLua;
+    
+    /* Find the Lua code resource */
+    hrscLua = FindResource(g_hInstance,
+        MAKEINTRESOURCE(IDR_DEFAULT_LUA), RT_RCDATA);
+    /* Was resource found */
+    if(NULL == hrscLua)
+        return NULL;
+
+    /* Load the Lua code resource */
+    hLua = LoadResource(NULL, hrscLua);
+    /* Was resource loaded */
+    if(NULL == hLua)
+        return NULL;
+    
+    /* Get the Lua code */
+    dwLuaLength = SizeofResource(g_hInstance, hrscLua);
+    lpOrigLua = LockResource(hLua);
+    /* Verify that resource was obtained */
+    if(NULL == lpOrigLua || 0 == dwLuaLength)
+        return NULL;
+    
+    /* Allocate buffer for Lua code string, add one byte for terminating zero */
+    lpNewLua = HeapAlloc(g_hHeap, 0, dwLuaLength + 1);
+    if(NULL == lpNewLua)
+        return NULL;
+    
+    /* Copy Buffer */
+    CopyMemory(lpNewLua, lpOrigLua, dwLuaLength);
+    /* Add terminating zero */
+    lpNewLua[dwLuaLength] = '\0';
+           
+    return lpNewLua;
+}
+
+/******************************************************************************/
+BOOL WhLuaDoString(
+    LPWHLUA lpWhLua,
+    LPCSTR lpFileName,
+    LPCSTR lpLuaCode
+)
+{
+    /* Load string into the Lua state */
+    if(0 != luaL_dostring(lpWhLua->lpLua, lpLuaCode))
+        return FALSE;
     return TRUE;
 }

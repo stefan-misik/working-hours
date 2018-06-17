@@ -14,7 +14,6 @@
 typedef struct tagWHLUA
 {
     lua_State * lpLua;  /**< Lua interpreter state */
-    LPSTR lpLuaCode;    /**< Current Lua Code */
     HWND hwndParent;    /**< Parent window used for error messages */
     HWND hwndDebugWnd;  /**< Window used for printing the Lua debug messages,
                          *   can be NULL */
@@ -35,9 +34,10 @@ typedef struct tagWHTIME
  * 
  * @param[out] lpWhLua Working hours state
  * 
- * @return FALSE on failure
+ * @warning Lua state is not yer ready after calling this function, it needs to
+ *          be created by calling @ref WhLuaReset()
  */
-BOOL WhLuaInit(
+VOID WhLuaInit(
     LPWHLUA lpWhLua
 );
 
@@ -47,6 +47,17 @@ BOOL WhLuaInit(
  * @param[in,out] lpWhLua Working hours Lua state
  */
 VOID WhLuaDestroy(
+    LPWHLUA lpWhLua
+);
+
+/**
+ * @brief (Re)create the Lua state
+ * 
+ * @param[in,out] lpWhLua Working hours Lua state
+ * 
+ * @return False on Failure
+ */
+BOOL WhLuaReset(
     LPWHLUA lpWhLua
 );
 
@@ -71,43 +82,6 @@ VOID WhLuaSetDebugWnd(
     LPWHLUA lpWhLua,
     HWND hwndDbg
 );
-
-/**
- * @brief Set new Lua code and loads it into the Lua state
- * 
- * @param[in,out] lpWhLua Working hours state
- * @param lpNewLuaCode Pointer to buffer containing the string with new Lua code
- * 
- * @return FALSE on failure
- */
-BOOL WhLuaSetCode(
-    LPWHLUA lpWhLua,
-    LPSTR lpNewLuaCode
-);
-
-/**
- * @brief Load the Lua code from a text file
- * 
- * @param[in] lpFile Path to a file to be loaded
- * 
- * @return Allocated buffer with the loaded Lua code or NULL on failure
- * 
- * @warning The returned buffer needs to be freed with HeapFree() using the
- *          default process heap GetProcessHeap()
- */
-LPSTR WhLuaLoadCode(
-    LPCTSTR lpFile
-);
-
-/**
- * @brief Load the default Lua code from resources
- * 
- * @return Allocated buffer with the default Lua code or NULL on failure
- * 
- * @warning The returned buffer needs to be freed with HeapFree() using the
- *          default process heap GetProcessHeap()
- */
-LPSTR WhLuaLoadDefaultCode(VOID);
 
 /**
  * @brief Print string from the top of Lua stack as an error message
@@ -161,6 +135,47 @@ BOOL WhLuaToColor(
     lua_State * lpLua,
     LPCOLORREF lpcrColor,
     INT iIndex
+);
+
+/**
+ * @brief Load the Lua code from a text file
+ * 
+ * @param[in] lpFile Path to a file to be loaded
+ * 
+ * @return Allocated buffer with the loaded Lua code or NULL on failure
+ * 
+ * @warning The returned buffer needs to be freed with HeapFree() using the
+ *          default process heap GetProcessHeap()
+ */
+LPSTR WhLuaLoadCode(
+    LPCTSTR lpFile
+);
+
+/**
+ * @brief Load the default Lua code from resources
+ * 
+ * @return Allocated buffer with the default Lua code or NULL on failure
+ * 
+ * @warning The returned buffer needs to be freed with HeapFree() using the
+ *          default process heap GetProcessHeap()
+ */
+LPSTR WhLuaLoadDefaultCode(
+    VOID
+);
+
+/**
+ * @brief Load specified string into Lua
+ * 
+ * @param[in,out] lpWhLua Working hours Lua state
+ * @param[in] lpFileName Name of the file containing the Lua code
+ * @param[in] lpLuaCode Lua code to be loaded into the Lua state
+ * 
+ * @return FALSE on failure
+ */
+BOOL WhLuaDoString(
+    LPWHLUA lpWhLua,
+    LPCSTR lpFileName,
+    LPCSTR lpLuaCode
 );
 
 #endif /* WH_LUA_H */
