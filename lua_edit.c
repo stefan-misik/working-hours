@@ -105,7 +105,7 @@ static BOOL OnInitDialog(
     
     /* Set the console window font */
     SendDlgItemMessage(hwnd, IDC_LUA_EDIT, WM_SETFONT, 
-            (WPARAM)GetStockObject(ANSI_FIXED_FONT), (LPARAM)TRUE);
+            (WPARAM)GetStockObject(OEM_FIXED_FONT), (LPARAM)TRUE);
 
     /* Configure auto-resize */
     if(DrInit(&(lpData->dr), hwnd, 3))
@@ -433,4 +433,14 @@ HWND LeWndCreate(
         
         return hwndDebug;
     }
+}
+
+/******************************************************************************/
+VOID LeWndSetCode(
+    HWND hwndLuaEdit,
+    LPCSTR lpFilename,
+    LPCSTR lpLuaCode
+)
+{
+    SetDlgItemTextA(hwndLuaEdit, IDC_LUA_EDIT, lpLuaCode);
 }

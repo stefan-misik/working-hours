@@ -16,5 +16,18 @@ HWND LeWndCreate(
     HWND hwndParent
 );
 
+/**
+ * @brief Load code into the editor
+ * 
+ * @param hwndLuaEdit Lua editor window handle
+ * @param[in] lpFilename Lua source file name
+ * @param[in] lpLuaCode Lua code
+ */
+VOID LeWndSetCode(
+    HWND hwndLuaEdit,
+    LPCSTR lpFilename,
+    LPCSTR lpLuaCode
+);
+
 #endif /* LUA_EDIT_H */
 

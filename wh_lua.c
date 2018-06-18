@@ -474,7 +474,5 @@ BOOL WhLuaDoString(
 )
 {
     /* Load string into the Lua state */
-    if(0 != luaL_dostring(lpWhLua->lpLua, lpLuaCode))
-        return FALSE;
-    return TRUE;
+    return (0 == luaL_dostring(lpWhLua->lpLua, lpLuaCode));
 }

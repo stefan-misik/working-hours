@@ -27,6 +27,7 @@ typedef struct tagMAINWNDDATA
     WHTIME whtLastUpdate;   /**< Time of last window update */
     WHLUA WhLua;            /**< Working hours state */
     LPSTR lpLuaCode;        /**< String containing the current Lua code */
+    BOOL bLuaReady;         /**< Lua state initialized and not being editted */
     HWND hwndDebug;         /**< Debug window handle */
     HWND hwndEdit;          /**< Lua edit window handle */
 } MAINWNDDATA, *LPMAINWNDDATA;
@@ -66,6 +67,10 @@ static VOID UpdateWorkingHours(
     SYSTEMTIME st;
     WHTIME whtArrival, whtNow, whtWorked;
     TCHAR lptstrTimeWorked[64];
+    
+    /* Check if Lua is ready */
+    if(!lpData->bLuaReady)
+        return;
 
     /* Get current time */
     GetLocalTime(&st);
@@ -127,10 +132,14 @@ static VOID UpdateLeaveTime(
     HWND hwnd
 )
 {
+    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
     SYSTEMTIME st;
     WHTIME whtArrival, whtLeave;
     TCHAR lptstrLeaveTime[64];
-    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
+    
+    /* Check if Lua is ready */
+    if(!lpData->bLuaReady)
+        return;
 
     /* Get arrival time */
     if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
@@ -293,6 +302,7 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->whtLastUpdate.wMinute = 0;
     WhLuaInit(&(lpData->WhLua));
     lpData->lpLuaCode = NULL;
+    lpData->bLuaReady = FALSE;
     lpData->hwndDebug = NULL;
     lpData->hwndEdit = NULL;
 
@@ -392,9 +402,8 @@ static VOID OnDbgWnd(
         {
             DestroyWindow(lpData->hwndDebug);
         }
-        
+
         lpData->hwndDebug = DbgWndCreate(hwnd);
-        CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND, MF_BYCOMMAND | MF_CHECKED);
     }
     else
     {
@@ -403,7 +412,14 @@ static VOID OnDbgWnd(
             DestroyWindow(lpData->hwndDebug);
             lpData->hwndDebug = NULL;
         }
-        
+    }
+    
+    if(NULL != lpData->hwndDebug)
+    {
+        CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND, MF_BYCOMMAND | MF_CHECKED);
+    }
+    else
+    {
         CheckMenuItem(GetMenu(hwnd), IDM_DBG_WND, MF_BYCOMMAND | MF_UNCHECKED);
     }
     
@@ -433,9 +449,8 @@ static VOID OnLeWnd(
         {
             DestroyWindow(lpData->hwndEdit);
         }
-        
+
         lpData->hwndEdit = LeWndCreate(hwnd);
-        CheckMenuItem(GetMenu(hwnd), IDM_EDIT, MF_BYCOMMAND | MF_CHECKED);
     }
     else
     {
@@ -444,8 +459,33 @@ static VOID OnLeWnd(
             DestroyWindow(lpData->hwndEdit);
             lpData->hwndEdit = NULL;
         }
+    }
+    
+    if(NULL != lpData->hwndEdit)
+    {
+        CheckMenuItem(GetMenu(hwnd), IDM_EDIT, MF_BYCOMMAND | MF_CHECKED);
+
+        /* Disable Lua execution in main window */
+        lpData->bLuaReady = FALSE;
         
+        /* Load the Lua code into the editor */
+        LeWndSetCode(lpData->hwndEdit, "", lpData->lpLuaCode);
+    }
+    else
+    {
         CheckMenuItem(GetMenu(hwnd), IDM_EDIT, MF_BYCOMMAND | MF_UNCHECKED);
+        
+        /* Restart Lua and load new code */
+        lpData->bLuaReady = WhLuaReset(&(lpData->WhLua));
+        if(lpData->bLuaReady)
+        {
+            if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
+                WhLuaErrorMessage(&(lpData->WhLua));
+            
+            /* Force an update */
+            UpdateLeaveTime(hwnd);
+            UpdateWorkingHours(hwnd, TRUE);
+        }
     }
 }
 
@@ -558,8 +598,13 @@ static BOOL OnInitDialog(
         lpLuaCode = WhLuaLoadDefaultCode();
     /* Set the loaded Lua code */
     LuaSetCode(lpData, lpLuaCode);
-    if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
-        WhLuaErrorMessage(&(lpData->WhLua));
+    /* Initialize Lua state */
+    lpData->bLuaReady = WhLuaReset(&(lpData->WhLua));
+    if(lpData->bLuaReady)
+    {
+        if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
+            WhLuaErrorMessage(&(lpData->WhLua));
+    }
             
     /* Start working hours update timer */
     SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
