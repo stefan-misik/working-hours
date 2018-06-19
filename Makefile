@@ -94,8 +94,8 @@ $(LUA_ARCH):
 
 clean:
 	$(RM) $(EXECUTABLE) $(OBJ)
-	$(MAKE) -C $(LUA_DIR) $@
 	$(MAKE) -C res $@
+	-$(MAKE) -C $(LUA_DIR) $@
 
 cleanall: clean
 	$(RM) -r $(LUA_ARCH) $(LUA_DIR)
