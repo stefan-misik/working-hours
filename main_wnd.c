@@ -413,6 +413,27 @@ static BOOL OnRunAtStartup(
 }
 
 /**
+ * @brief Replace Lua code buffer
+ * 
+ * The function will free the original buffer, if any is present.
+ * 
+ * @param[in,out] lpData Main window data structure
+ * @param[in] lpNewLuaCode Buffer containing the new Lua code
+ */
+VOID LuaSetCode(
+    LPMAINWNDDATA lpData,
+    LPSTR lpNewLuaCode
+)
+{
+    if(NULL != lpData->lpLuaCode)
+    {
+        HeapFree(g_hHeap, 0, lpData->lpLuaCode);
+    }
+    
+    lpData->lpLuaCode = lpNewLuaCode;
+}
+
+/**
  * @brief Show the window displaying Lua debug messages
  * 
  * @param hwnd Main window handle
@@ -471,6 +492,7 @@ static VOID OnLeWnd(
 )
 {
     LPMAINWNDDATA lpData;
+    
     /* Get main window data */
     lpData = GetMainWindowData(hwnd);
     
@@ -488,6 +510,9 @@ static VOID OnLeWnd(
     {
         if(NULL != lpData->hwndEdit)
         {
+            /* Get the Lua code */
+            LuaSetCode(lpData, LeWndGetCode(lpData->hwndEdit));
+            /* Destroy the Lua editor window */
             DestroyWindow(lpData->hwndEdit);
             lpData->hwndEdit = NULL;
         }
@@ -511,8 +536,11 @@ static VOID OnLeWnd(
         lpData->bLuaReady = WhLuaReset(&(lpData->WhLua));
         if(lpData->bLuaReady)
         {
-            if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
-                WhLuaErrorMessage(&(lpData->WhLua));
+            if(NULL != lpData->lpLuaCode)
+            {
+                if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
+                    WhLuaErrorMessage(&(lpData->WhLua));
+            }
             
             /* Force an update */
             UpdateLeaveTime(hwnd);
@@ -561,20 +589,6 @@ static VOID IsRegisteredToRunAtStartup(
         MF_BYCOMMAND | ((lpData->bOnStartup) ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(lpData->hTrayIconMenu, IDM_RUNATSTARTUP,
         MF_BYCOMMAND | ((lpData->bOnStartup) ? MF_CHECKED : MF_UNCHECKED));
-}
-
-/******************************************************************************/
-VOID LuaSetCode(
-    LPMAINWNDDATA lpData,
-    LPSTR lpNewLuaCode
-)
-{
-    if(NULL != lpData->lpLuaCode)
-    {
-        HeapFree(g_hHeap, 0, lpData->lpLuaCode);
-    }
-    
-    lpData->lpLuaCode = lpNewLuaCode;
 }
 
 /******************************************************************************/

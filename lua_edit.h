@@ -29,5 +29,19 @@ VOID LeWndSetCode(
     LPCSTR lpLuaCode
 );
 
+/**
+ * @brief Get the code form the editor
+ * 
+ * @param hwndLuaEdit
+ * 
+ * @return Buffer containing the Lua code form the editor
+ * 
+ * @warning The returned buffer needs to be freed with HeapFree() using the
+ *          default process heap GetProcessHeap()
+ */
+LPSTR LeWndGetCode(
+    HWND hwndLuaEdit
+);
+
 #endif /* LUA_EDIT_H */
 

@@ -444,3 +444,34 @@ VOID LeWndSetCode(
 {
     SetDlgItemTextA(hwndLuaEdit, IDC_LUA_EDIT, lpLuaCode);
 }
+
+/******************************************************************************/
+LPSTR LeWndGetCode(
+    HWND hwndLuaEdit
+)
+{
+    HWND hwndEdit;
+    INT iCodeLength;
+    LPSTR lpLuaCode = NULL;
+    
+    /* Get the edit control handle */
+    hwndEdit = GetDlgItem(hwndLuaEdit, IDC_LUA_EDIT);
+    
+    /* Get the code length */
+    iCodeLength = GetWindowTextLengthA(hwndEdit);
+    if(iCodeLength <= 0)
+        return NULL;
+    
+    /* Allocate the buffer */
+    lpLuaCode = HeapAlloc(g_hHeap, 0, (iCodeLength + 1) * sizeof(CHAR));
+    if(NULL == lpLuaCode)
+        return NULL;
+    
+    /* Get the Lua code */
+    if(iCodeLength != GetWindowTextA(hwndEdit, lpLuaCode, iCodeLength + 1))
+    {
+        HeapFree(g_hHeap, 0, lpLuaCode);
+        return NULL;
+    }
+    return lpLuaCode;
+}
