@@ -93,7 +93,7 @@ $(LUA_ARCH):
 
 
 clean:
-	$(RM) $(EXECUTABLE) $(OBJ)
+	$(RM) $(EXECUTABLE) $(OBJ) $(LUA_LIB)
 	$(MAKE) -C res $@
 	-$(MAKE) -C $(LUA_DIR) $@
 
