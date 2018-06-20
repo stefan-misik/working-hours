@@ -1,6 +1,15 @@
 #include "tray_icon.h"
 #include <strsafe.h>
 
+/******************************************************************************/
+/*                               Private                                      */
+/******************************************************************************/
+
+/**
+ * @brief Number of a windows message sent on creation of the taskbar
+ * 
+ */
+static UINT g_uTakbarCreatedMessage = 0;
 
 /******************************************************************************/
 /*                                Public                                      */
@@ -96,4 +105,15 @@ BOOL TrayIconShowPopupMenu(
         hwndParent,
         NULL
     );
+}
+
+/******************************************************************************/
+UINT TrayIconTaskbarCreatedMessage(
+    VOID
+)
+{
+    if(0 == g_uTakbarCreatedMessage)
+        g_uTakbarCreatedMessage = RegisterWindowMessage(TEXT("TaskbarCreated"));
+    
+    return g_uTakbarCreatedMessage;
 }

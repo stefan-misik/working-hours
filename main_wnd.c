@@ -53,6 +53,45 @@ typedef struct tagMAINWNDDATA
 #define WH_LUA_CODE_FILE "working-hours.lua"
 
 /**
+ * @brief Number of a windows message sent on creation of the taskbar
+ * 
+ */
+static UINT g_uTakbarCreatedMessage = 0;
+
+/**
+ * @brief Update notification icon balloon text
+ * 
+ * @param hwnd Main window handle
+ * 
+ * @return FALSE on failure
+ */
+static BOOL UpdateTryIconText(
+    HWND hwnd
+)
+{
+    TCHAR lptstrTimeWorked[64];
+    TCHAR lptstrTrayBalloon[64];
+    DWORD_PTR lpArgs[] = {(DWORD_PTR)lptstrTimeWorked};
+    
+    /* Get the current working time */
+    if(0 == GetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked,
+            sizeof(lptstrTimeWorked)/sizeof(TCHAR)))
+        return FALSE;
+    
+    /* Format balloon text */
+    if (!FormatMessage(FORMAT_MESSAGE_FROM_STRING |
+            FORMAT_MESSAGE_ARGUMENT_ARRAY, TEXT(PROJECT_NAME) TEXT(" (%1)"), 0,
+            0, lptstrTrayBalloon, sizeof(lptstrTrayBalloon)/sizeof(TCHAR),
+            (va_list *)lpArgs))
+        return FALSE;
+    
+    /* Update tray icon balloon */
+    TrayUpdateText(hwnd, TRAY_ICON_ID, lptstrTrayBalloon);
+    
+    return TRUE;
+}
+
+/**
  * @brief Procedure called when working hours count is to be updated
  * 
  * @param hwnd Main window handle
@@ -111,15 +150,8 @@ static VOID UpdateWorkingHours(
             InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, FALSE);
         }
 
-        /* Format time spent working into a string for tray icon */
-        if(0 != GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
-            TEXT("'") TEXT(PROJECT_NAME) TEXT(" ('") TEXT(WH_TIME_FORMAT)
-                TEXT(")"), lptstrTimeWorked,
-                (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1))
-        {
-            /* Update tray icon balloon */
-            TrayUpdateText(hwnd, TRAY_ICON_ID, lptstrTimeWorked);
-        }
+        /* Update tray icon balloon */
+        UpdateTryIconText(hwnd);
     }
 }
 
@@ -939,6 +971,27 @@ static INT_PTR OnLeWndOpenClose(
 }
 
 /**
+ * @brief Message sent to top level windows when taskbar is created
+ * 
+ * @param hwnd Main window handle
+ * 
+ * @return TRUE if message is processed
+ */
+static INT_PTR OnTaskbarCreated(
+    HWND hwnd
+)
+{
+    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
+    
+    /* Re-add tray icon */
+    TrayIconAdd(hwnd, TRAY_ICON_ID, WM_TRAY_ICON, lpData->hMainIcon);
+    /* Update the tray icon text */
+    UpdateTryIconText(hwnd);
+    
+    return TRUE;
+}
+
+/**
  * @brief Main window dialog procedure
  * 
  * @param hwnd Main Window handle
@@ -1001,6 +1054,12 @@ static INT_PTR CALLBACK DialogProc(
 
     case WM_LEWNDOPENCLOSE:
         return OnLeWndOpenClose(hwnd, (HWND)lParam);
+        
+    default:
+        if(g_uTakbarCreatedMessage == uMsg)
+            return OnTaskbarCreated(hwnd);
+
+        break;
     }
     
     return FALSE;
@@ -1019,6 +1078,9 @@ BOOL CreateMainWindow(
 )
 {
     LPMAINWNDDATA lpData;
+    
+    /* Get the taskbar creation message number */
+    g_uTakbarCreatedMessage = TrayIconTaskbarCreatedMessage();
     
     if(NULL != g_hMainWnd)
     {

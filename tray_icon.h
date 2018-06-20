@@ -61,5 +61,14 @@ BOOL TrayIconShowPopupMenu(
     HMENU hMenu
 );
 
+/**
+ * @brief get the message ID of the message sent on creation of taskbar
+ * 
+ * @return Message number
+ */
+UINT TrayIconTaskbarCreatedMessage(
+    VOID
+);
+
 #endif /* TRAY_ICON_H */
 
