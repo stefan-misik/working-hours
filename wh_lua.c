@@ -173,19 +173,48 @@ static int WhLuaPrint(
 {
     INT iUpValIdx = lua_upvalueindex(1);
     
-    if(0 < lua_gettop(lpLua) && lua_islightuserdata(lpLua, iUpValIdx))
+    if(lua_islightuserdata(lpLua, iUpValIdx))
     {
         LPWHLUA lpWhLua = lua_touserdata(lpLua, iUpValIdx);
-        
+
         if(NULL != lpWhLua && NULL != lpWhLua->hwndDebugWnd)
         {
-            LPCSTR lpMsg;
+            INT nArg, cArgs;
             
-            /* Get The string */
-            lpMsg = lua_tostring(lpLua, -1);
-
-            /* Show the message */
-            DbgWndLog(lpWhLua->hwndDebugWnd, lpMsg);
+            /* Get the count of input arguments */
+            cArgs = lua_gettop(lpLua);
+            
+            /* Get the 'tostring' function */
+            lua_getglobal(lpLua, "tostring");
+            
+            for(nArg = 1; nArg <= cArgs; nArg ++)
+            {
+                LPCSTR lpMsg;
+                
+                /* function to be called */
+                lua_pushvalue(lpLua, -1);
+                /* value to print */
+                lua_pushvalue(lpLua, nArg);
+                /* call 'tostring' */
+                lua_call(lpLua, 1, 1);
+                
+                /* Get The string */
+                lpMsg = lua_tostring(lpLua, -1);
+                /* Check the message */
+                if (lpMsg == NULL)
+                {
+                    /* Push error message */
+                    lua_pushliteral(lpLua,
+                        "'tostring' must return a string to 'print'");
+                    return lua_error(lpLua);
+                }
+                
+                /* Show the message */
+                DbgWndLog(lpWhLua->hwndDebugWnd, lpMsg);
+                
+                /* pop result */
+                lua_pop(lpLua, 1);
+            }
         }
     }
     return 0;
