@@ -154,6 +154,8 @@ BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&New\tCtrl+N",                    IDM_EDITOR_NEW
+        MENUITEM "&Load Default",                   IDM_EDITOR_DEFAULT
+        MENUITEM SEPARATOR
         MENUITEM "&Open...\tCtrl+O",                IDM_EDITOR_OPEN
         MENUITEM "&Save\tCtrl+S",                   IDM_EDITOR_SAVE
         MENUITEM "Save &As...",                     IDM_EDITOR_SAVEAS

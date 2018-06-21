@@ -23,6 +23,7 @@
  */
 typedef struct tagDBGWNDDATA
 {
+    HWND hwnd;                      /**< Debug window handle */
     CHAR strBuffer[DBG_BUFFER_LEN]; /**< Buffer for debug messages */
     INT iLogLength;                 /**< Number of characters in log up to the
                                      *   terminating zero */
@@ -39,10 +40,12 @@ static VOID DestroyDbgWndData(
     LPDBGWNDDATA lpData
 )
 {
-    DrDestroy(&(lpData->dr));
-
     if(NULL != lpData)
+    {
+        DrDestroy(&(lpData->dr));
+
         HeapFree(g_hHeap, 0, lpData);
+    }
 }
 
 /**
@@ -147,6 +150,9 @@ static BOOL OnInitDialog(
 )
 {
     LPDBGWNDDATA lpData = (LPDBGWNDDATA)lpAdditionalData;
+    
+    /* Store window handle */
+    lpData->hwnd = hwnd;
     
     /* Store Pointer to the data structure with the window */
     SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)lpData);

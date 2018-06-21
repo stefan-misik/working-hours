@@ -2,6 +2,7 @@
 #include "resource.h"
 #include "dialog_resize.h"
 #include "accelerators.h"
+#include "working_hours.h"
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -21,8 +22,10 @@
  */
 typedef struct tagLEWNDDATA
 {
+    HWND hwnd;                      /**< Lua editor window handle */
     HICON hLuaIcon;                 /**< Lua icon */
     DIALOGRESIZE dr;                /**< Dialog resize information */
+    BOOL bModified;                 /**< Lua code was editted */
 } LEWNDDATA, *LPLEWNDDATA;
 
 /**
@@ -35,12 +38,14 @@ static VOID DestroyLeWndData(
     LPLEWNDDATA lpData
 )
 {
-    DrDestroy(&(lpData->dr));
-    if(NULL != lpData->hLuaIcon)
-        DestroyIcon(lpData->hLuaIcon);
-
     if(NULL != lpData)
+    {
+        DrDestroy(&(lpData->dr));
+        if(NULL != lpData->hLuaIcon)
+            DestroyIcon(lpData->hLuaIcon);
+
         HeapFree(g_hHeap, 0, lpData);
+    }
 }
 
 /**
@@ -60,8 +65,32 @@ static LPLEWNDDATA CreateLeWndData(VOID)
     /* Initialize main window data */
     lpData->hLuaIcon = NULL;
     DrInit(&(lpData->dr), NULL, 0);
+    lpData->bModified = FALSE;
 
     return lpData;
+}
+
+/**
+ * @brief Load the default Lua code into the editor
+ * 
+ * @param[in] lpData Lua editor data structure pointer
+ */
+static VOID LoadDefaultCode(
+    LPLEWNDDATA lpData
+)
+{
+    LPSTR lpLuaCode;
+    
+    /* Get the default code */
+    lpLuaCode = WhLuaLoadDefaultCode();
+    
+    if(NULL != lpLuaCode)
+    {
+        SetDlgItemTextA(lpData->hwnd, IDC_LUA_EDIT, lpLuaCode);
+        
+        /* Free the Lua code buffer */
+        HeapFree(g_hHeap, 0, lpLuaCode);
+    }
 }
 
 
@@ -84,6 +113,9 @@ static BOOL OnInitDialog(
 )
 {
     LPLEWNDDATA lpData = (LPLEWNDDATA)lpAdditionalData;
+    
+    /* Store window handle */
+    lpData->hwnd = hwnd;
     
     /* Store Pointer to the data structure with the window */
     SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)lpData);
@@ -179,10 +211,16 @@ static INT_PTR OnMenuAccCommand(
     BOOL bIsMenu
 )
 {
+    LPLEWNDDATA lpData = GetLeWindowData(hwnd);
+
     switch(wID)
     {
     case IDM_EDITOR_NEW:
         SetDlgItemText(hwnd, IDC_LUA_EDIT, TEXT(""));
+        return TRUE;
+
+    case IDM_EDITOR_DEFAULT:
+        LoadDefaultCode(lpData);
         return TRUE;
 
     case IDM_EDITOR_OPEN:

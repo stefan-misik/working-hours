@@ -19,6 +19,7 @@
  */
 typedef struct tagMAINWNDDATA
 {
+    HWND hwnd;              /**< Main window handle */
     HICON hMainIcon;        /**< Main Icon handle */    
     HMENU hTrayIconMenu;    /**< Menu for the tray icon */
     BOOL bOnStartup;        /**< Is being run on startup */
@@ -611,6 +612,9 @@ static BOOL OnInitDialog(
 {
     LPMAINWNDDATA lpData = (LPMAINWNDDATA)lpAdditionalData;
     LPSTR lpLuaCode;
+    
+    /* Store window handle */
+    lpData->hwnd = hwnd;
     
     /* Store Pointer to the data structure with the window */
     SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)lpData);
