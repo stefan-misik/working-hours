@@ -3,6 +3,7 @@
 #include "dialog_resize.h"
 #include "accelerators.h"
 #include "working_hours.h"
+#include "defs.h"
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -27,6 +28,30 @@ typedef struct tagLEWNDDATA
     DIALOGRESIZE dr;                /**< Dialog resize information */
     BOOL bModified;                 /**< Lua code was editted */
 } LEWNDDATA, *LPLEWNDDATA;
+
+/**
+ * @brief Confirm saving of changes
+ * 
+ * @param[in,out] lpData Lua editor data structure pointer
+ * 
+ * @return FALSE if user canceled the saving
+ */
+static BOOL SaveChanges(
+    LPLEWNDDATA lpData
+)
+{
+    INT iResponse;
+    
+    if(FALSE == lpData->bModified)
+        return TRUE;
+    
+    /* Ask user */
+    iResponse =  MessageBox(lpData->hwnd,
+        TEXT("Are sure you want to discard changes?"), TEXT(PROJECT_NAME),
+        MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON3 | MB_APPLMODAL);
+    
+    return iResponse != IDCANCEL;
+}
 
 /**
  * @brief Destroy all objects in a Lua edit window data structure and free
@@ -80,6 +105,10 @@ static VOID LoadDefaultCode(
 )
 {
     LPSTR lpLuaCode;
+    
+    /* Check if user wants to save changes, if any */
+    if(FALSE == SaveChanges(lpData))
+        return;
     
     /* Get the default code */
     lpLuaCode = WhLuaLoadDefaultCode();
@@ -190,8 +219,16 @@ static INT_PTR OnControlCommand(
     HWND hwndC
 )
 {
+    LPLEWNDDATA lpData = GetLeWindowData(hwnd);
+    
     switch(wControlID)
     {
+    case IDC_LUA_EDIT:
+        if(EN_CHANGE == wNotifCode)
+        {
+            lpData->bModified = TRUE;
+        }
+        break;
     }
     return FALSE;
 }
@@ -216,7 +253,10 @@ static INT_PTR OnMenuAccCommand(
     switch(wID)
     {
     case IDM_EDITOR_NEW:
-        SetDlgItemText(hwnd, IDC_LUA_EDIT, TEXT(""));
+        if(SaveChanges(lpData))
+        {
+            SetDlgItemText(hwnd, IDC_LUA_EDIT, TEXT(""));
+        }
         return TRUE;
 
     case IDM_EDITOR_DEFAULT:
@@ -279,16 +319,14 @@ static INT_PTR OnNotify(
     LPNMHDR lpNmhdr
 )
 {
-    switch(lpNmhdr->code)
+    switch(lpNmhdr->idFrom)
     {
-    case NM_CLICK:
-    case NM_RETURN:
-        switch(lpNmhdr->idFrom)
+    case IDC_LUA_LINK:
+        if(NM_CLICK == lpNmhdr->code || NM_RETURN == lpNmhdr->code)
         {
-            case IDC_LUA_LINK:
-                ShellExecute(NULL, TEXT("open"), TEXT(LUA_LINK_URL), NULL,
-                    NULL, SW_SHOW);
-                return TRUE;
+            ShellExecute(NULL, TEXT("open"), TEXT(LUA_LINK_URL), NULL,
+                NULL, SW_SHOW);
+            return TRUE;
         }
         break;
     }
