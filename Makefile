@@ -86,15 +86,17 @@ defs.o: defs.c
 
 $(LUA_LIB): $(LUA_ARCH)
 	$(TAR) -xzf $<
-	$(MAKE) -C $(LUA_DIR) mingw local CC=$(CC)
+	$(MAKE) -C $(LUA_DIR) generic CC=$(CC)
+	$(MAKE) -C $(LUA_DIR) install INSTALL_TOP=../install
 
 $(LUA_ARCH):
 	$(DOWNT) $(LUA_SRC)
 
 
 clean:
-	$(RM) $(EXECUTABLE) $(OBJ) $(LUA_LIB)
+	$(RM) $(EXECUTABLE) $(OBJ)
 	$(MAKE) -C res $@
+	-$(MAKE) -C $(LUA_DIR) uninstall INSTALL_TOP=../install
 	-$(MAKE) -C $(LUA_DIR) $@
 
 cleanall: clean
