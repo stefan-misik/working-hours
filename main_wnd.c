@@ -1151,7 +1151,11 @@ BOOL CreateMainWindow(
     else
     {
         /* Hide the window by default */
+		#ifndef _DEBUG
+        ShowMainWnd(g_hMainWnd, FALSE);
+		#else
         ShowMainWnd(g_hMainWnd, TRUE);
+		#endif
         return TRUE;
     }
 }

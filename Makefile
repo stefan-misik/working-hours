@@ -65,7 +65,7 @@ ifeq ($(DBG),y)
 endif
 ################################################################################
 
-.PHONY: all clean cleanall
+.PHONY: all clean mostlyclean
 
 all: $(EXECUTABLE)
 
@@ -93,12 +93,12 @@ $(LUA_ARCH):
 	$(DOWNT) $(LUA_SRC)
 
 
-clean:
+mostlyclean:
 	$(RM) $(EXECUTABLE) $(OBJ)
-	$(MAKE) -C res $@
+	$(MAKE) -C res clean
 	-$(MAKE) -C $(LUA_DIR) uninstall INSTALL_TOP=../install
-	-$(MAKE) -C $(LUA_DIR) $@
+	-$(MAKE) -C $(LUA_DIR) clean
 
-cleanall: clean
+clean: mostlyclean
 	$(RM) -r $(LUA_ARCH) $(LUA_DIR)
 
