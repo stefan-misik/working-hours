@@ -74,9 +74,9 @@ static INT_PTR CALLBACK AboutProc(
                 return TRUE;
             case IDC_MAILTO:			
                 ShellExecute(NULL, TEXT("open"),
-                    TEXT("mailto:") TEXT(PROJECT_MAIL)
-                    TEXT("?subject=") TEXT(PROJECT_NAME), NULL,
-                    NULL, SW_SHOW);
+                    TEXT("mailto:") TEXT(PROJECT_MAIL_USER) TEXT("@")
+					TEXT(PROJECT_MAIL_SERVER) TEXT("?subject=")
+					TEXT(PROJECT_NAME), NULL, NULL, SW_SHOW);
                 return TRUE;
             }
             break;

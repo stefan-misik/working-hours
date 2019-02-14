@@ -8,7 +8,7 @@
 #define DEFS_STRINGIFYX(s) #s
 
 /* Project version*/
-#define PROJECT_VER_1           1
+#define PROJECT_VER_1           2
 #define PROJECT_VER_2           0
 #define PROJECT_VER_3           0
 #ifdef PROJECT_COMMITS
@@ -39,7 +39,8 @@
 
 #define PROJECT_WEB "https://github.com/stefan-misik/working-hours/releases/latest"
 
-#define PROJECT_MAIL "mail@stefanmisik.eu"
+#define PROJECT_MAIL_USER "mail"
+#define PROJECT_MAIL_SERVER "stefanmisik.com"
 
 extern const TCHAR lpProjectName[];
 extern const TCHAR lpProjectDesc[];

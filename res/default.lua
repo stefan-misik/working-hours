@@ -23,7 +23,7 @@ function Calculate(Arrival, Now)
         Minutes = 0
     end
 
-    --Assign timer color
+    -- Assign timer color
     local Color
     if (MinutesNow < (14*60 + 30)) then
         -- RED - Before end of obligatory period (until 14:30)
@@ -41,6 +41,9 @@ function Calculate(Arrival, Now)
         Hour = (math.floor(Minutes / 60)),
         Minute = (Minutes % 60)
     }
+
+    ---- Print debug information
+    --print(string.format("Worked for: %i:%i", Worked.Hour, Worked.Minute))
 
     -- Return calculated working hours and timer color
     return Worked, Color
@@ -60,6 +63,9 @@ function LeaveTime(Arrival)
         Hour = (math.floor(Minutes / 60)),
         Minute = (Minutes % 60)
     }
+
+    ---- Print debug information
+    --print(string.format("Leave Time: %i:%i", Leave.Hour, Leave.Minute))
 
     -- Return the leave time
     return Leave

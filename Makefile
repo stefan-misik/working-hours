@@ -20,10 +20,10 @@ TAR = tar
 # Project settings
 PROJ	= working-hours
 SRC	= main.c main_wnd.c defs.c tray_icon.c about_dialog.c working_hours.c \
-          wh_lua.c dbg_wnd.c lua_edit.c dialog_resize.c
+          wh_lua.c dbg_wnd.c dialog_resize.c
 RES	= resource.rc
 RES_DEP = default.lua icon.svg working-hours.manifest
-LUA_SRC = http://www.lua.org/ftp/lua-5.3.4.tar.gz
+LUA_SRC = http://www.lua.org/ftp/lua-5.3.5.tar.gz
 
 # Lua stuff
 LUA_ARCH    = $(notdir $(LUA_SRC))
@@ -38,7 +38,7 @@ LDLIBS	    = -lcomctl32 -luser32 -lkernel32 -lgdi32 -luxtheme \
 # Resource dependency
 RES_DEP_FILES = $(addprefix res/,$(RES_DEP))
 # Number to subtract from the last git commits count
-LAST_COMMIT = 14
+LAST_COMMIT = 43
 
 ################################################################################
 # Git versions

@@ -77,8 +77,8 @@ BEGIN
     LTEXT           "Version: ",IDC_STATIC, 60,43,50,8
     LTEXT           "Git commit: ",IDC_STATIC, 60,55,50,8
 
-    CONTROL         "<a>" PROJECT_MAIL "</a>",IDC_MAILTO,
-                    "SysLink",WS_VISIBLE | WS_TABSTOP,170,31,99,8
+    CONTROL         "<a>" PROJECT_MAIL_USER "@" PROJECT_MAIL_SERVER "</a>",
+	                IDC_MAILTO, "SysLink",WS_VISIBLE | WS_TABSTOP,170,31,99,8
     CONTROL         "<a>Get the latest version</a>",IDC_GET_LATEST,
                     "SysLink",WS_VISIBLE | WS_TABSTOP,170,43,80,8
 
@@ -113,32 +113,18 @@ BEGIN
 END
 
 /******************************************************************************/
-IDD_LE_WND DIALOGEX 10,10,460,200
-STYLE   DS_SETFONT | DS_MODALFRAME | WS_POPUPWINDOW | WS_THICKFRAME
-CAPTION "Lua Script Editor"
-MENU IDR_EDITOR_MENU
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    EDITTEXT        IDC_LUA_EDIT, 7, 7, 446, 130, 
-                    WS_VSCROLL | ES_MULTILINE | WS_TABSTOP
-    LTEXT           "", IDC_LUA_LOGO_ICON, 320, 143, 32, 32, SS_ICON
-    CONTROL         "Read more about\r\nLua language on its <a>web</a>",
-                    IDC_LUA_LINK, "SysLink", WS_VISIBLE | WS_TABSTOP,
-                    370, 155, 83, 20
-
-    CONTROL         "", IDC_LESTATUSBAR, STATUSCLASSNAME, SBARS_SIZEGRIP |
-                    WS_CHILD | WS_VISIBLE, 0, 0, 0, 0
-END
-
-/******************************************************************************/
 IDR_MENU MENU
 BEGIN
     POPUP "&Working-hours"
     BEGIN
         MENUITEM "&Run at Startup",                 IDM_RUNATSTARTUP
         MENUITEM SEPARATOR
+        POPUP "Script"
+        BEGIN
+            MENUITEM "&Load Default",               IDM_LOAD_DEFAULT
+            MENUITEM "&Reload",                     IDM_RELOAD
+        END
         MENUITEM "Script &Debug Console",           IDM_DBG_WND
-        MENUITEM "&Edit Script",                    IDM_EDIT
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                           IDM_EXIT
     END
@@ -146,37 +132,6 @@ BEGIN
     BEGIN
         MENUITEM "&About",                          IDM_ABOUT
     END    
-END
-
-/******************************************************************************/
-IDR_EDITOR_MENU MENU
-BEGIN
-    POPUP "&File"
-    BEGIN
-        MENUITEM "&New\tCtrl+N",                    IDM_EDITOR_NEW
-        MENUITEM "&Load Default",                   IDM_EDITOR_DEFAULT
-        MENUITEM SEPARATOR
-        MENUITEM "&Open...\tCtrl+O",                IDM_EDITOR_OPEN
-        MENUITEM "&Save\tCtrl+S",                   IDM_EDITOR_SAVE
-        MENUITEM "Save &As...",                     IDM_EDITOR_SAVEAS
-        MENUITEM SEPARATOR
-        MENUITEM "E&xit",                           IDM_EDITOR_EXIT
-    END
-    POPUP "&Edit"
-    BEGIN
-        MENUITEM "&Undo\tCtrl+Z",                   IDM_EDITOR_UNDO
-        MENUITEM SEPARATOR
-        MENUITEM "Cu&t\tCtrl+X",                    IDM_EDITOR_CUT
-        MENUITEM "&Copy\tCtrl+C",                   IDM_EDITOR_COPY
-        MENUITEM "&Paste\tCtrl+V",                  IDM_EDITOR_PASTE
-        MENUITEM "De&lete\tDel",                    IDM_EDITOR_DELETE
-        MENUITEM SEPARATOR
-        MENUITEM "Select &All\tCtrl+A",             IDM_EDITOR_SELALL
-    END
-    POPUP "&Script"
-    BEGIN
-        MENUITEM "&Run\tF6",                        IDM_EDITOR_RUN
-    END
 END
 
 /******************************************************************************/
@@ -190,16 +145,6 @@ BEGIN
         MENUITEM "&About",          IDM_ABOUT
         MENUITEM "E&xit",           IDM_EXIT
     END
-END
-
-/******************************************************************************/
-IDR_ACC ACCELERATORS
-BEGIN
-    "^N",  IDM_EDITOR_NEW,    VIRTKEY
-    "^O",  IDM_EDITOR_OPEN,   VIRTKEY
-    "^S",  IDM_EDITOR_SAVE,   VIRTKEY
-    "^A",  IDM_EDITOR_SELALL, VIRTKEY
-    VK_F6, IDM_EDITOR_RUN,    VIRTKEY
 END
 
 /******************************************************************************/

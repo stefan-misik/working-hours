@@ -152,6 +152,19 @@ LPSTR WhLuaLoadCode(
 );
 
 /**
+ * @brief Save the Lua code into a text file
+ * 
+ * @param[in] lpFile Path to a file to save to
+ * @param[in] lpCode Code to be saved
+ * 
+ * @return @c TRUE on success
+ */
+BOOL WhLuaSaveCode(
+    LPCTSTR lpFile,
+    LPCSTR lpCode
+);
+
+/**
  * @brief Load the default Lua code from resources
  * 
  * @return Allocated buffer with the default Lua code or NULL on failure

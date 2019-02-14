@@ -11,7 +11,7 @@
 /*                               Private                                      */
 /******************************************************************************/
 
-#define LUA_MAX_FILE_SIZE ((16*1024) - 1)
+#define LUA_MAX_FILE_SIZE ((128*1024) - 1)
 
 /**
  * @brief Name of the Lua table member representing @ref tagWHTIME::wHour
@@ -449,6 +449,35 @@ LPSTR WhLuaLoadCode(
     lpLuaCode[dwFileSize] = '\0';
     
     return lpLuaCode;
+}
+
+/******************************************************************************/
+BOOL WhLuaSaveCode(
+    LPCTSTR lpFile,
+    LPCSTR lpCode
+)
+{
+    HANDLE hFile;
+    DWORD dwCodeLength, dwBytesWritten;
+    
+    /* Try to open the Lua source file */
+    hFile = CreateFile(lpFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL, NULL);
+    if(hFile == INVALID_HANDLE_VALUE)
+        return FALSE;
+    
+    /* Write whole code string */
+    dwCodeLength = lstrlenA(lpCode);
+    if(!WriteFile(hFile, lpCode, dwCodeLength, &dwBytesWritten, NULL))
+    {
+        CloseHandle(hFile);
+        return FALSE;
+    }
+    
+    /* Close the file */
+    CloseHandle(hFile);
+    
+    return TRUE;
 }
 
 /******************************************************************************/

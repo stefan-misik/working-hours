@@ -30,39 +30,17 @@
     #define IDC_DBGCONSOLE                  1032
     #define IDC_DBGSTATUSBAR                1039
 
-#define IDD_LE_WND                      1040
-    #define IDC_LUA_EDIT                    1041
-    #define IDC_LUA_LOGO_ICON               1042
-    #define IDC_LUA_LINK                    1043
-    #define IDC_LESTATUSBAR                 1049
-
 /* Menus */
 #define IDR_MENU                        4000
     #define IDM_RUNATSTARTUP                4001
     #define IDM_EXIT                        4002
     #define IDM_DBG_WND                     4003
-    #define IDM_EDIT                        4004
-    #define IDM_ABOUT                       4005
-
-#define IDR_EDITOR_MENU                 4100
-    #define IDM_EDITOR_NEW                  4001
-    #define IDM_EDITOR_DEFAULT              4002
-    #define IDM_EDITOR_OPEN                 4003
-    #define IDM_EDITOR_SAVE                 4004
-    #define IDM_EDITOR_SAVEAS               4005
-    #define IDM_EDITOR_EXIT                 4006
-    #define IDM_EDITOR_UNDO                 4007
-    #define IDM_EDITOR_CUT                  4008
-    #define IDM_EDITOR_COPY                 4009
-    #define IDM_EDITOR_PASTE                4010
-    #define IDM_EDITOR_DELETE               4011
-    #define IDM_EDITOR_SELALL               4012
-    #define IDM_EDITOR_RUN                  4013
+    #define IDM_LOAD_DEFAULT                4004
+    #define IDM_RELOAD                      4005
+    #define IDM_ABOUT                       4006
 
 #define IDR_TRAY_MENU                   4200
     #define IDM_SHOWHIDE                    4201
-
-#define IDR_ACC                         5000
 
 /* Strings */
 #define IDS_MAIN_ERROR                  1

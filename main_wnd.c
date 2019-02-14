@@ -8,7 +8,6 @@
 #include "defs.h"
 #include "working_hours.h"
 #include "dbg_wnd.h"
-#include "lua_edit.h"
 
 /******************************************************************************/
 /*                               Private                                      */
@@ -30,7 +29,6 @@ typedef struct tagMAINWNDDATA
     LPSTR lpLuaCode;        /**< String containing the current Lua code */
     BOOL bLuaReady;         /**< Lua state initialized and not being editted */
     HWND hwndDebug;         /**< Debug window handle */
-    HWND hwndEdit;          /**< Lua edit window handle */
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
@@ -267,8 +265,6 @@ static VOID ShowMainWnd(
         ShowWindow(hWnd, SW_SHOW);
         if(NULL != lpData->hwndDebug)
             ShowWindow(lpData->hwndDebug, SW_SHOW);
-        if(NULL != lpData->hwndEdit)
-            ShowWindow(lpData->hwndEdit, SW_SHOW);
         
         /* Move windows to the screen with cursor */
         CenterWindow(hWnd);
@@ -278,8 +274,6 @@ static VOID ShowMainWnd(
         ShowWindow(hWnd, SW_HIDE);
         if(NULL != lpData->hwndDebug)
             ShowWindow(lpData->hwndDebug, SW_HIDE);
-        if(NULL != lpData->hwndEdit)
-            ShowWindow(lpData->hwndEdit, SW_HIDE);
     }
 }
 
@@ -304,9 +298,7 @@ static VOID DestroyMainWndData(
             HeapFree(g_hHeap,0, lpData->lpLuaCode);
         if(NULL != lpData->hwndDebug)
             DestroyWindow(lpData->hwndDebug);
-        if(NULL != lpData->hwndEdit)
-            DestroyWindow(lpData->hwndEdit);
-        
+
         HeapFree(g_hHeap, 0, lpData);
     }
 }
@@ -337,7 +329,6 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->lpLuaCode = NULL;
     lpData->bLuaReady = FALSE;
     lpData->hwndDebug = NULL;
-    lpData->hwndEdit = NULL;
 
     return lpData;
 }
@@ -414,14 +405,15 @@ static BOOL OnRunAtStartup(
 }
 
 /**
- * @brief Replace Lua code buffer
+ * @brief Replace Lua code buffer and load new Lua state
  * 
- * The function will free the original buffer, if any is present.
+ * The function will free the original buffer, if any is present and load it
+ * in a new Lua state.
  * 
  * @param[in,out] lpData Main window data structure
  * @param[in] lpNewLuaCode Buffer containing the new Lua code
  */
-VOID LuaSetCode(
+static BOOL LuaLoadCode(
     LPMAINWNDDATA lpData,
     LPSTR lpNewLuaCode
 )
@@ -432,6 +424,96 @@ VOID LuaSetCode(
     }
     
     lpData->lpLuaCode = lpNewLuaCode;
+    
+    /* Initialize Lua state */
+    lpData->bLuaReady = WhLuaReset(&(lpData->WhLua));
+    if(lpData->bLuaReady)
+    {
+        if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
+        {
+            WhLuaErrorMessage(&(lpData->WhLua));
+            return FALSE;
+        }
+    }
+    return lpData->bLuaReady;
+}
+
+/**
+ * @brief Reload Lua code either form file or the default
+ * 
+ * @param[in,out] lpData Window data structure
+ * 
+ * @return @c TRUE on success
+ */
+static BOOL ReloadLuaCode(
+    LPMAINWNDDATA lpData
+)
+{
+    LPSTR lpLuaCode;
+
+    /* Load the default Lua code */
+    lpLuaCode = WhLuaLoadCode(TEXT(WH_LUA_CODE_FILE));
+    if(NULL == lpLuaCode)
+        lpLuaCode = WhLuaLoadDefaultCode();
+    /* Set the loaded Lua code */
+    return LuaLoadCode(lpData, lpLuaCode);
+}
+
+
+/**
+ * @brief Handle menu item to load default code
+ * 
+ * @param hwnd Main window handle
+ */
+static VOID OnScriptLoadDefault(
+    HWND hwnd
+)
+{
+    LPSTR lpLuaCode;
+    LPMAINWNDDATA lpData;
+    
+    /* Get main window data */
+    lpData = GetMainWindowData(hwnd);
+    
+    lpLuaCode = WhLuaLoadDefaultCode();
+    
+    if(LuaLoadCode(lpData, lpLuaCode) &&
+            WhLuaSaveCode(TEXT(WH_LUA_CODE_FILE), lpLuaCode))
+    {
+        MessageBox(hwnd, TEXT("Successfully loaded the default Lua script. "
+                    "Default script stored in '" WH_LUA_CODE_FILE "' file."),
+                TEXT("Lua Export"), MB_OK | MB_ICONINFORMATION);
+    }
+    else
+    {
+        MessageBox(hwnd, TEXT("Could not load the default Lua script."),
+                TEXT("Lua Export"), MB_OK | MB_ICONWARNING);   
+    }
+}
+
+/**
+ * @brief Handle menu item to reload Lua code
+ * 
+ * @param hwnd Main window handle
+ */
+static VOID OnScriptReload(
+    HWND hwnd
+)
+{
+    LPMAINWNDDATA lpData;
+    /* Get main window data */
+    lpData = GetMainWindowData(hwnd);
+    
+    if(ReloadLuaCode(lpData))
+    {
+        MessageBox(hwnd, TEXT("Successfully reloaded the Lua script."),
+                TEXT("Lua Reload"), MB_OK | MB_ICONINFORMATION);
+    }
+    else
+    {
+        MessageBox(hwnd, TEXT("Could not reload the Lua script."),
+                TEXT("Lua Reload"), MB_OK | MB_ICONWARNING);   
+    }
 }
 
 /**
@@ -479,75 +561,6 @@ static VOID OnDbgWnd(
     
     /* Inform Lua module about debug window status change */
     WhLuaSetDebugWnd(&(lpData->WhLua), lpData->hwndDebug);
-}
-
-/**
- * @brief Show the window displaying Lua script editor
- * 
- * @param hwnd Main window handle
- * @param bShow Show or hide the Lua edit window
- */
-static VOID OnLeWnd(
-    HWND hwnd,
-    BOOL bShow
-)
-{
-    LPMAINWNDDATA lpData;
-    
-    /* Get main window data */
-    lpData = GetMainWindowData(hwnd);
-    
-    if(bShow)
-    {
-        /* Destroy already existing window */
-        if(NULL != lpData->hwndEdit)
-        {
-            DestroyWindow(lpData->hwndEdit);
-        }
-
-        lpData->hwndEdit = LeWndCreate(hwnd);
-    }
-    else
-    {
-        if(NULL != lpData->hwndEdit)
-        {
-            /* Get the Lua code */
-            LuaSetCode(lpData, LeWndGetCode(lpData->hwndEdit));
-            /* Destroy the Lua editor window */
-            DestroyWindow(lpData->hwndEdit);
-            lpData->hwndEdit = NULL;
-        }
-    }
-    
-    if(NULL != lpData->hwndEdit)
-    {
-        CheckMenuItem(GetMenu(hwnd), IDM_EDIT, MF_BYCOMMAND | MF_CHECKED);
-
-        /* Disable Lua execution in main window */
-        lpData->bLuaReady = FALSE;
-        
-        /* Load the Lua code into the editor */
-        LeWndSetCode(lpData->hwndEdit, "", lpData->lpLuaCode);
-    }
-    else
-    {
-        CheckMenuItem(GetMenu(hwnd), IDM_EDIT, MF_BYCOMMAND | MF_UNCHECKED);
-        
-        /* Restart Lua and load new code */
-        lpData->bLuaReady = WhLuaReset(&(lpData->WhLua));
-        if(lpData->bLuaReady)
-        {
-            if(NULL != lpData->lpLuaCode)
-            {
-                if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
-                    WhLuaErrorMessage(&(lpData->WhLua));
-            }
-            
-            /* Force an update */
-            UpdateLeaveTime(hwnd);
-            UpdateWorkingHours(hwnd, TRUE);
-        }
-    }
 }
 
 /**
@@ -611,7 +624,6 @@ static BOOL OnInitDialog(
 )
 {
     LPMAINWNDDATA lpData = (LPMAINWNDDATA)lpAdditionalData;
-    LPSTR lpLuaCode;
     
     /* Store window handle */
     lpData->hwnd = hwnd;
@@ -642,19 +654,8 @@ static BOOL OnInitDialog(
     
     /* Set window handle for parenting Lua error message-boxes */
     WhLuaSetErrorParentWnd(&(lpData->WhLua), hwnd);
-    /* Load the default Lua code */
-    lpLuaCode = WhLuaLoadCode(TEXT(WH_LUA_CODE_FILE));
-    if(NULL == lpLuaCode)
-        lpLuaCode = WhLuaLoadDefaultCode();
-    /* Set the loaded Lua code */
-    LuaSetCode(lpData, lpLuaCode);
-    /* Initialize Lua state */
-    lpData->bLuaReady = WhLuaReset(&(lpData->WhLua));
-    if(lpData->bLuaReady)
-    {
-        if(!WhLuaDoString(&(lpData->WhLua), "", lpData->lpLuaCode))
-            WhLuaErrorMessage(&(lpData->WhLua));
-    }
+    /* Reload Lua code form file or default */
+    ReloadLuaCode(lpData);
             
     /* Start working hours update timer */
     SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
@@ -829,12 +830,16 @@ static INT_PTR OnMenuAccCommand(
             DestroyWindow(hwnd);
             return TRUE;
             
+        case IDM_LOAD_DEFAULT:
+            OnScriptLoadDefault(hwnd);
+            return TRUE;
+            
+        case IDM_RELOAD:
+            OnScriptReload(hwnd);
+            return TRUE;
+            
         case IDM_DBG_WND:
             OnDbgWnd(hwnd, (NULL == lpData->hwndDebug));
-            return TRUE;
-        
-        case IDM_EDIT:
-            OnLeWnd(hwnd, (NULL == lpData->hwndEdit));
             return TRUE;
 
         case IDM_ABOUT:
@@ -962,33 +967,6 @@ static INT_PTR OnDbgWndOpenClose(
 }
 
 /**
- * @brief Lua edit window request to open/close
- * 
- * @param hwnd Main window handle
- * @param hwndLe Lua edit window handle
- * 
- * @return TRUE if message is processed
- */
-static INT_PTR OnLeWndOpenClose(
-    HWND hwnd,
-    HWND hwndLe
-)
-{
-    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
-    
-    if (NULL == hwndLe)
-    {
-        OnLeWnd(hwnd, TRUE);
-    }
-    else if(hwndLe == lpData->hwndEdit)
-    {
-        OnLeWnd(hwnd, FALSE);
-    }
-    
-    return TRUE;
-}
-
-/**
  * @brief Message sent to top level windows when taskbar is created
  * 
  * @param hwnd Main window handle
@@ -1069,9 +1047,6 @@ static INT_PTR CALLBACK DialogProc(
         
     case WM_DBGWNDOPENCLOSE:
         return OnDbgWndOpenClose(hwnd, (HWND)lParam);
-
-    case WM_LEWNDOPENCLOSE:
-        return OnLeWndOpenClose(hwnd, (HWND)lParam);
         
     default:
         if(g_uTakbarCreatedMessage == uMsg)
