@@ -5,18 +5,12 @@ function Calculate(Arrival, Now)
     local MinutesNow = Now.Minute + (60 * Now.Hour)
     local Minutes = MinutesNow - (Arrival.Minute + (60 * Arrival.Hour))
 
-    -- Subtract 5 minutes form beginning
-    Minutes = Minutes - 5
-
     -- Subtract 30 minutes lunch break after 6 hours
     if (Minutes > (6*60 + 30)) then
         Minutes = Minutes - 30
     elseif (Minutes > (6*60)) then
         Minutes = 6*60
     end
-
-    -- Subtract 5 minutes from end
-    Minutes = Minutes - 5
 
     -- Make sure the time spent working is not negative
     if (Minutes < 0) then
@@ -54,9 +48,9 @@ end
 function LeaveTime(Arrival)
     local Minutes = Arrival.Minute + (60 * Arrival.Hour)
 
-    -- Leave in 8 hours, 30 minutes for launch break, and 5 minutes for arrival
-    -- and 5 for leave; fix whole day overflow
-    Minutes = (Minutes + (8*60) + 30 + 5 + 5) % (24*60)
+    -- Leave in 8 hours, 30 minutes for launch break
+    -- fix whole day overflow
+    Minutes = (Minutes + (8*60) + 30) % (24*60)
 
     -- Calculate leave time
     local Leave = {
