@@ -119,6 +119,8 @@ BEGIN
     BEGIN
         MENUITEM "&Run at Startup",                 IDM_RUNATSTARTUP
         MENUITEM SEPARATOR
+        MENUITEM "&Set Arrival to Now",             IDM_SETARRIVAL
+        MENUITEM SEPARATOR
         POPUP "Script"
         BEGIN
             MENUITEM "&Load Default",               IDM_LOAD_DEFAULT

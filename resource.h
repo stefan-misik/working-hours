@@ -33,11 +33,12 @@
 /* Menus */
 #define IDR_MENU                        4000
     #define IDM_RUNATSTARTUP                4001
-    #define IDM_EXIT                        4002
-    #define IDM_DBG_WND                     4003
-    #define IDM_LOAD_DEFAULT                4004
-    #define IDM_RELOAD                      4005
-    #define IDM_ABOUT                       4006
+    #define IDM_SETARRIVAL                  4002
+    #define IDM_EXIT                        4003
+    #define IDM_DBG_WND                     4004
+    #define IDM_LOAD_DEFAULT                4005
+    #define IDM_RELOAD                      4006
+    #define IDM_ABOUT                       4007
 
 #define IDR_TRAY_MENU                   4200
     #define IDM_SHOWHIDE                    4201
