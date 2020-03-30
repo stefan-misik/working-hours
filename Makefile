@@ -38,7 +38,7 @@ LDLIBS	    = -lcomctl32 -luser32 -lkernel32 -lgdi32 -luxtheme \
 # Resource dependency
 RES_DEP_FILES = $(addprefix res/,$(RES_DEP))
 # Number to subtract from the last git commits count
-LAST_COMMIT = 43
+LAST_COMMIT = 45
 
 ################################################################################
 # Git versions
