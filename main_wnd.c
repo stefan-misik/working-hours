@@ -376,7 +376,7 @@ static BOOL OnRunAtStartup(
             return FALSE;
         }	
 		
-        /* Ty to write filename of current executable to registry */
+        /* Try to write filename of current executable to registry */
         if (ERROR_SUCCESS != RegSetValueEx(hKey, lpProjectName, 0,
             REG_SZ, (LPBYTE)lpExeName, (dwRes + 1) * sizeof(TCHAR)))
         {
@@ -605,6 +605,21 @@ static VOID IsRegisteredToRunAtStartup(
         MF_BYCOMMAND | ((lpData->bOnStartup) ? MF_CHECKED : MF_UNCHECKED));
 }
 
+/**
+ * @brief Set arrival time  to current time
+ *
+ * @param hwnd Main window hadle
+ */
+static VOID SetArrivalToNow(
+    HWND hwnd
+)
+{
+    SYSTEMTIME now;
+    GetLocalTime(&now);
+    SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_SETSYSTEMTIME, GDT_VALID,
+            (LPARAM)(&now));
+}
+
 /******************************************************************************/
 /*                         Windows Messages                                   */
 /******************************************************************************/
@@ -644,6 +659,7 @@ static BOOL OnInitDialog(
     /* Change arrival time format */
     SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_SETFORMAT, 0,
         (LPARAM)TEXT(WH_TIME_FORMAT));
+    SetArrivalToNow(hwnd);
     
     /* Create worked hours font */
     lpData->hWorkHoursFont = CreateFont(46, 0, 0, 0, FW_BOLD, FALSE, FALSE,
@@ -825,7 +841,15 @@ static INT_PTR OnMenuAccCommand(
             if(bIsMenu)
                 OnRunAtStartup(hwnd, !(lpData->bOnStartup));
             return TRUE;
-        
+
+        case IDM_SETARRIVAL:
+            if(bIsMenu)
+            {
+                SetArrivalToNow(hwnd);
+                UpdateWorkingHours(hwnd, TRUE);
+            }
+            return TRUE;
+
         case IDM_EXIT:
             DestroyWindow(hwnd);
             return TRUE;
