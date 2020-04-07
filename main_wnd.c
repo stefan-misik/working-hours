@@ -29,6 +29,9 @@ typedef struct tagMAINWNDDATA
     LPSTR lpLuaCode;        /**< String containing the current Lua code */
     BOOL bLuaReady;         /**< Lua state initialized and not being editted */
     HWND hwndDebug;         /**< Debug window handle */
+    BOOL bIsPaused;         /**< Is work paused */
+    HICON hPauseIcon;       /**< Pause work icon */
+    HICON hResumeIcon;      /**< Resume work icon */
 } MAINWNDDATA, *LPMAINWNDDATA;
 
 /* Tray icon notification messages  */
@@ -298,6 +301,11 @@ static VOID DestroyMainWndData(
             HeapFree(g_hHeap,0, lpData->lpLuaCode);
         if(NULL != lpData->hwndDebug)
             DestroyWindow(lpData->hwndDebug);
+        if(NULL != lpData->hPauseIcon)
+            DestroyIcon(lpData->hPauseIcon);
+        if(NULL != lpData->hResumeIcon)
+            DestroyIcon(lpData->hResumeIcon);
+
 
         HeapFree(g_hHeap, 0, lpData);
     }
@@ -329,6 +337,10 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->lpLuaCode = NULL;
     lpData->bLuaReady = FALSE;
     lpData->hwndDebug = NULL;
+    lpData->bIsPaused = FALSE;
+    lpData->hPauseIcon = NULL;
+    lpData->hResumeIcon = NULL;
+
 
     return lpData;
 }
@@ -649,6 +661,10 @@ static BOOL OnInitDialog(
     /* Set icon */
     SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)lpData->hMainIcon);
     SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)lpData->hMainIcon);
+    
+    /* Set play pause default icon */
+    SendDlgItemMessage(hwnd, IDC_PLAY_PAUSE, BM_SETIMAGE, IMAGE_ICON,
+            (LPARAM)lpData->hPauseIcon);
 
     /* Add tray icon */
     TrayIconAdd(hwnd, TRAY_ICON_ID, WM_TRAY_ICON, lpData->hMainIcon);
@@ -814,6 +830,24 @@ static INT_PTR OnControlCommand(
             SetFocus(GetDlgItem(hwnd, IDC_ARR_TIME));
 		}
         return FALSE;
+    
+    case IDC_PLAY_PAUSE:
+    {
+        LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
+        if (lpData->bIsPaused)
+        {
+            lpData->bIsPaused = FALSE;
+            SendDlgItemMessage(hwnd, IDC_PLAY_PAUSE, BM_SETIMAGE, IMAGE_ICON,
+                    (LPARAM)lpData->hPauseIcon);
+        }
+        else
+        {
+            lpData->bIsPaused = TRUE;
+            SendDlgItemMessage(hwnd, IDC_PLAY_PAUSE, BM_SETIMAGE, IMAGE_ICON,
+                    (LPARAM)lpData->hResumeIcon);
+        }
+        return TRUE;
+    }
     }
     return FALSE;
 }
@@ -1119,6 +1153,16 @@ BOOL CreateMainWindow(
         DestroyMainWndData(lpData);
         return FALSE;
     }
+    
+    /* Load other icons */
+    lpData->hPauseIcon = LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_PAUSE),
+            IMAGE_ICON,
+            GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON),
+            LR_DEFAULTCOLOR);
+    lpData->hResumeIcon = LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_RESUME),
+            IMAGE_ICON,
+            GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON),
+            LR_DEFAULTCOLOR);
 
     /* Load tray icon menu */
     lpData->hTrayIconMenu = LoadMenu(g_hInstance,

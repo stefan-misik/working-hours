@@ -8,12 +8,17 @@
 /* Icons */
 #define IDI_MAIN                        101
 #define IDI_LUA_LOGO                    102
+#define IDI_PAUSE                       150
+#define IDI_RESUME                      151
+
 
 /* Dialog windows */
 #define IDD_MAIN_WND                    1000
     #define IDC_ARR_TIME                1001
     #define IDC_LEAVE_TIME              1002
-    #define IDC_WORK_TIME               1003
+    #define IDC_PAUSE_TIME              1003
+    #define IDC_PLAY_PAUSE              1004
+    #define IDC_WORK_TIME               1005
 
 #define IDD_ABOUT                       1020
     #define IDC_APP_ICON                    1021

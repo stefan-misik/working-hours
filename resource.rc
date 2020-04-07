@@ -4,6 +4,8 @@
 /******************************************************************************/
 IDI_MAIN                ICON                    "res\\icon.ico"
 IDI_LUA_LOGO            ICON                    "res\\lua_logo.ico"
+IDI_PAUSE               ICON                    "res\\pause.ico"
+IDI_RESUME              ICON                    "res\\resume.ico"
 
 /******************************************************************************/
 1 RT_MANIFEST "res\\working-hours.manifest"
@@ -43,7 +45,7 @@ BEGIN
 END
 
 /******************************************************************************/
-IDD_MAIN_WND DIALOGEX 0,0,110,99
+IDD_MAIN_WND DIALOGEX 0,0,110,117
 STYLE   DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_OVERLAPPED |
     NOT WS_VISIBLE | WS_CAPTION | WS_SYSMENU 
 EXSTYLE WS_EX_APPWINDOW
@@ -59,8 +61,13 @@ BEGIN
     EDITTEXT        IDC_LEAVE_TIME, 50, 25, 53, 14, WS_BORDER | NOT WS_TABSTOP |
                     ES_READONLY
 
-    GROUPBOX        "You've worked for", IDC_STATIC, 7, 46, 96, 46
-    EDITTEXT        IDC_WORK_TIME, 13, 57, 84, 28,
+    LTEXT           "Pause time:", IDC_STATIC, 7, 46, 50, 8
+    EDITTEXT        IDC_PAUSE_TIME, 50, 43, 36, 14, WS_BORDER | NOT WS_TABSTOP |
+                    ES_READONLY
+    PUSHBUTTON      "", IDC_PLAY_PAUSE, 88, 43, 14, 14, BS_ICON
+
+    GROUPBOX        "You've worked for", IDC_STATIC, 7, 64, 96, 46
+    EDITTEXT        IDC_WORK_TIME, 13, 75, 84, 28,
                     NOT WS_BORDER | NOT WS_TABSTOP | ES_READONLY
 END
 
