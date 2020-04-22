@@ -847,6 +847,7 @@ static INT_PTR OnMenuAccCommand(
             {
                 SetArrivalToNow(hwnd);
                 UpdateWorkingHours(hwnd, TRUE);
+                UpdateLeaveTime(hwnd);
             }
             return TRUE;
 
