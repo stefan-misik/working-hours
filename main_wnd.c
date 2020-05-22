@@ -166,6 +166,19 @@ static WORD GetPauseTime(
 }
 
 /**
+ * @brief Calculate minutes from W-H Time
+ *
+ * @param whtime Time to convert
+ * @return Time in minutes
+ */
+static WORD WHTimeToMinutes(
+    LPCWHTIME whtime
+)
+{
+    return (whtime->wHour * 60) + whtime->wMinute;
+}
+
+/**
  * @brief Procedure called when working hours count is to be updated
  * 
  * @param hwnd Main window handle
@@ -187,8 +200,8 @@ static VOID UpdateWorkingHours(
     /* Get current time */
     GetCurrentWHTime(&whtNow);
 
-    if(bForceUpdate || lpData->whtLastUpdate.wHour != whtNow.wHour || 
-        lpData->whtLastUpdate.wMinute != whtNow.wMinute)
+    if(bForceUpdate || lpData->whtLastUpdate.wMinute != whtNow.wMinute ||
+        lpData->whtLastUpdate.wHour != whtNow.wHour)
     {
         /* Update last update time */
         lpData->whtLastUpdate = whtNow;
@@ -204,8 +217,22 @@ static VOID UpdateWorkingHours(
                 &whtNewWorkingTime, &(lpData->crWorkHoursCol)))
             return;
 
+        /* Increment pause time, if paused */
+        if (lpData->bIsPaused && !bForceUpdate)
+        {
+            if (lpData->whtWorkingTime.wMinute != whtNewWorkingTime.wMinute ||
+                    lpData->whtWorkingTime.wHour != whtNewWorkingTime.wHour)
+            {
+                pauseTime += WHTimeToMinutes(&whtNewWorkingTime) -
+                        WHTimeToMinutes(&(lpData->whtWorkingTime));
+            }
+        }
+
         /* Remember work time */
         lpData->whtWorkingTime = whtNewWorkingTime;
+
+        /* Update pause time */
+        SetDlgItemInt(hwnd, IDC_PAUSE_TIME, pauseTime, FALSE);
 
         UpdateWorkingHoursText(hwnd, &whtNewWorkingTime);
 
