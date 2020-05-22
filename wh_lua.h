@@ -28,6 +28,7 @@ typedef struct tagWHTIME
     WORD wHour;
     WORD wMinute;
 } WHTIME, *LPWHTIME;
+typedef const WHTIME *LPCWHTIME;
 
 /**
  * @brief Initialize Lua sate in working hours state

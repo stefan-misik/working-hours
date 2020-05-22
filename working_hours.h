@@ -30,7 +30,7 @@ BOOL WhSystimeToWht(
  */
 BOOL WhWhtToSystime(
     LPSYSTEMTIME lpSystime,
-    const LPWHTIME lpWht
+    LPCWHTIME lpWht
 );
 
 /**

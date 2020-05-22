@@ -25,6 +25,7 @@ typedef struct tagMAINWNDDATA
     HFONT hWorkHoursFont;   /**< Font for the hours worked in the dialog box */
     COLORREF crWorkHoursCol;/**< Color of the working hours */   
     WHTIME whtLastUpdate;   /**< Time of last window update */
+    WHTIME whtWorkingTime;  /**< Time spent working */
     WHLUA WhLua;            /**< Working hours state */
     LPSTR lpLuaCode;        /**< String containing the current Lua code */
     BOOL bLuaReady;         /**< Lua state initialized and not being editted */
@@ -94,6 +95,77 @@ static BOOL UpdateTryIconText(
 }
 
 /**
+ * @brief Get the current time in W-H format
+ *
+ * @param whtime Current time
+ */
+static VOID GetCurrentWHTime(LPWHTIME whtime)
+{
+    SYSTEMTIME st;
+
+    /* Get current time */
+    GetLocalTime(&st);
+
+    /* Convert */
+    WhSystimeToWht(whtime, &st);
+}
+
+static BOOL ReadArrivalWHTime(HWND hwnd, LPWHTIME whtime)
+{
+    SYSTEMTIME st;
+
+    if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
+        DTM_GETSYSTEMTIME, 0, (WPARAM)(&st)))
+    {
+        return FALSE;
+    }
+
+    /* Convert */
+    WhSystimeToWht(whtime, &st);
+
+    return TRUE;
+}
+
+static VOID UpdateWorkingHoursText(HWND hwnd, LPCWHTIME whtime)
+{
+    SYSTEMTIME st;
+    TCHAR lptstrTimeWorked[64];
+
+    /* Convert */
+    WhWhtToSystime(&st, whtime);
+
+    /* Format time spent working into a string */
+    if(0 != GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
+        TEXT(WH_TIME_FORMAT), lptstrTimeWorked,
+        (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1))
+    {
+        /* Update time worked control */
+        SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
+
+        /* Invalidate entire working hours counter */
+        InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, FALSE);
+    }
+}
+
+/**
+ * @brief Get the value of the pause time
+ *
+ * @param hwnd Main window handle
+ * @return Pause time in minutes
+ */
+static WORD GetPauseTime(
+    HWND hwnd
+)
+{
+    BOOL success = FALSE;
+    WORD pauseTime;
+
+    pauseTime = GetDlgItemInt(hwnd, IDC_PAUSE_TIME, &success, FALSE);
+
+    return success ? pauseTime : 0;
+}
+
+/**
  * @brief Procedure called when working hours count is to be updated
  * 
  * @param hwnd Main window handle
@@ -105,52 +177,37 @@ static VOID UpdateWorkingHours(
 )
 {
     LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
-    SYSTEMTIME st;
-    WHTIME whtArrival, whtNow, whtWorked;
-    TCHAR lptstrTimeWorked[64];
+    WHTIME whtArrival, whtNow, whtNewWorkingTime;
+    WORD pauseTime;
     
     /* Check if Lua is ready */
     if(!lpData->bLuaReady)
         return;
 
     /* Get current time */
-    GetLocalTime(&st);
-    /* Convert */
-    WhSystimeToWht(&whtNow, &st);
-    	
+    GetCurrentWHTime(&whtNow);
+
     if(bForceUpdate || lpData->whtLastUpdate.wHour != whtNow.wHour || 
         lpData->whtLastUpdate.wMinute != whtNow.wMinute)
     {
         /* Update last update time */
-        lpData->whtLastUpdate.wHour = whtNow.wHour;
-        lpData->whtLastUpdate.wMinute = whtNow.wMinute;
-    
+        lpData->whtLastUpdate = whtNow;
+
         /* Get arrival time */
-        if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
-            DTM_GETSYSTEMTIME, 0, (WPARAM)(&st)))
+        if(!ReadArrivalWHTime(hwnd, &whtArrival))
             return;
-        /* Convert */
-        WhSystimeToWht(&whtArrival, &st);
+        /* Get Pause Time */
+        pauseTime = GetPauseTime(hwnd);
 
         /* Calculate current time spent working */
-        if(!WhCalculate(&(lpData->WhLua), &whtArrival, &whtNow, &whtWorked,
-                &(lpData->crWorkHoursCol)))
+        if(!WhCalculate(&(lpData->WhLua), &whtArrival, &whtNow,
+                &whtNewWorkingTime, &(lpData->crWorkHoursCol)))
             return;
-        
-        /* Convert */
-        WhWhtToSystime(&st, &whtWorked);
 
-        /* Format time spent working into a string */
-        if(0 != GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st,
-            TEXT(WH_TIME_FORMAT), lptstrTimeWorked,
-            (sizeof(lptstrTimeWorked)/sizeof(TCHAR)) - 1))
-        {
-            /* Update time worked control */
-            SetDlgItemText(hwnd, IDC_WORK_TIME, lptstrTimeWorked);
+        /* Remember work time */
+        lpData->whtWorkingTime = whtNewWorkingTime;
 
-            /* Invalidate entire working hours counter */
-            InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, FALSE);
-        }
+        UpdateWorkingHoursText(hwnd, &whtNewWorkingTime);
 
         /* Update tray icon balloon */
         UpdateTryIconText(hwnd);
@@ -333,6 +390,8 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->crWorkHoursCol = (COLORREF)GetSysColor(COLOR_BTNTEXT);
     lpData->whtLastUpdate.wHour = 0;
     lpData->whtLastUpdate.wMinute = 0;
+    lpData->whtWorkingTime.wHour = 0;
+    lpData->whtWorkingTime.wMinute = 0;
     WhLuaInit(&(lpData->WhLua));
     lpData->lpLuaCode = NULL;
     lpData->bLuaReady = FALSE;
