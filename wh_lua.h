@@ -101,7 +101,7 @@ VOID WhLuaErrorMessage(
  */
 VOID WhLuaPushTime(
     lua_State * lpLua,
-    const LPWHTIME lpTime
+    LPCWHTIME lpTime
 );
 
 /**

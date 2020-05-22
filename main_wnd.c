@@ -97,7 +97,7 @@ static BOOL UpdateTryIconText(
 /**
  * @brief Get the current time in W-H format
  *
- * @param whtime Current time
+ * @param[out] whtime Current time
  */
 static VOID GetCurrentWHTime(LPWHTIME whtime)
 {
@@ -110,6 +110,13 @@ static VOID GetCurrentWHTime(LPWHTIME whtime)
     WhSystimeToWht(whtime, &st);
 }
 
+/**
+ * @brief Read time of arrival from the GUI
+ *
+ * @param hwnd Main window
+ * @param[out] whtime Structure to obtain the time
+ * @return TRUE on success
+ */
 static BOOL ReadArrivalWHTime(HWND hwnd, LPWHTIME whtime)
 {
     SYSTEMTIME st;
@@ -126,6 +133,12 @@ static BOOL ReadArrivalWHTime(HWND hwnd, LPWHTIME whtime)
     return TRUE;
 }
 
+/**
+ * @brief Update working hours text
+ *
+ * @param hwnd Main window handle
+ * @param[in] whtime Working hours
+ */
 static VOID UpdateWorkingHoursText(HWND hwnd, LPCWHTIME whtime)
 {
     SYSTEMTIME st;
@@ -144,6 +157,29 @@ static VOID UpdateWorkingHoursText(HWND hwnd, LPCWHTIME whtime)
 
         /* Invalidate entire working hours counter */
         InvalidateRect(GetDlgItem(hwnd, IDC_WORK_TIME), NULL, FALSE);
+    }
+}
+
+/**
+ * @brief Update leave time text
+ *
+ * @param hwnd Main window handle
+ * @param[in] whtime Leave time
+ */
+static VOID UpdateLeaveTimeText(HWND hwnd, LPCWHTIME whtime)
+{
+    SYSTEMTIME st;
+    TCHAR lptstrLeaveTime[64];
+
+    /* Convert */
+    WhWhtToSystime(&st, whtime);
+
+    /* Format time spent working into a string for tray icon */
+    if(0 != GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
+        lptstrLeaveTime, (sizeof(lptstrLeaveTime)/sizeof(TCHAR)) - 1))
+    {
+        /* Update control text */
+        SetDlgItemText(hwnd, IDC_LEAVE_TIME, lptstrLeaveTime);
     }
 }
 
@@ -168,7 +204,7 @@ static WORD GetPauseTime(
 /**
  * @brief Calculate minutes from W-H Time
  *
- * @param whtime Time to convert
+ * @param[in] whtime Time to convert
  * @return Time in minutes
  */
 static WORD WHTimeToMinutes(
@@ -190,7 +226,7 @@ static VOID UpdateWorkingHours(
 )
 {
     LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
-    WHTIME whtArrival, whtNow, whtNewWorkingTime;
+    WHTIME whtArrival, whtNow, whtNewWorkingTime, whtLeave;
     WORD pauseTime;
     
     /* Check if Lua is ready */
@@ -208,16 +244,20 @@ static VOID UpdateWorkingHours(
 
         /* Get arrival time */
         if(!ReadArrivalWHTime(hwnd, &whtArrival))
+        {
             return;
+        }
         /* Get Pause Time */
         pauseTime = GetPauseTime(hwnd);
 
         /* Calculate current time spent working */
-        if(!WhCalculate(&(lpData->WhLua), &whtArrival, &whtNow,
+        if(!WhCalculate(&(lpData->WhLua), &whtArrival, &whtNow, pauseTime,
                 &whtNewWorkingTime, &(lpData->crWorkHoursCol)))
+        {
             return;
+        }
 
-        /* Increment pause time, if paused */
+        /* Increment pause time and re-calculate, if paused */
         if (lpData->bIsPaused && !bForceUpdate)
         {
             if (lpData->whtWorkingTime.wMinute != whtNewWorkingTime.wMinute ||
@@ -225,6 +265,12 @@ static VOID UpdateWorkingHours(
             {
                 pauseTime += WHTimeToMinutes(&whtNewWorkingTime) -
                         WHTimeToMinutes(&(lpData->whtWorkingTime));
+                if(!WhCalculate(&(lpData->WhLua), &whtArrival, &whtNow,
+                        pauseTime, &whtNewWorkingTime,
+                        &(lpData->crWorkHoursCol)))
+                {
+                    return;
+                }
             }
         }
 
@@ -238,47 +284,14 @@ static VOID UpdateWorkingHours(
 
         /* Update tray icon balloon */
         UpdateTryIconText(hwnd);
-    }
-}
 
-/**
- * @brief Update the leave time control
- * 
- * @param hwnd Main window handle
- */
-static VOID UpdateLeaveTime(
-    HWND hwnd
-)
-{
-    LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
-    SYSTEMTIME st;
-    WHTIME whtArrival, whtLeave;
-    TCHAR lptstrLeaveTime[64];
-    
-    /* Check if Lua is ready */
-    if(!lpData->bLuaReady)
-        return;
+        /* Calculate leave time */
+        if(!WhLeaveTime(&(lpData->WhLua), &whtArrival, pauseTime, &whtLeave))
+        {
+            return;
+        }
 
-    /* Get arrival time */
-    if(GDT_VALID != SendDlgItemMessage(hwnd, IDC_ARR_TIME,
-        DTM_GETSYSTEMTIME, 0, (WPARAM)(&st)))
-        return;
-    /* Convert */
-    WhSystimeToWht(&whtArrival, &st);
-
-    /* Calculate leave time */
-    if(!WhLeaveTime(&(lpData->WhLua), &whtArrival, &whtLeave))
-        return;
-
-    /* Convert */
-    WhWhtToSystime(&st, &whtLeave);
-
-    /* Format time spent working into a string for tray icon */
-    if(0 != GetTimeFormat(LOCALE_CUSTOM_DEFAULT, 0, &st, TEXT(WH_TIME_FORMAT),
-        lptstrLeaveTime, (sizeof(lptstrLeaveTime)/sizeof(TCHAR)) - 1))
-    { 
-        /* Update control text */
-        SetDlgItemText(hwnd, IDC_LEAVE_TIME, lptstrLeaveTime);
+        UpdateLeaveTimeText(hwnd, &whtLeave);
     }
 }
 
@@ -785,7 +798,6 @@ static BOOL OnInitDialog(
     SetTimer(hwnd, WH_TIMER_ID, WH_TIMER_PERIOD, NULL);
     /* Force an update working hours and leave time now */
     UpdateWorkingHours(hwnd, TRUE);
-    UpdateLeaveTime(hwnd);
 
     return TRUE;
 }
@@ -887,8 +899,6 @@ static INT_PTR OnNotify(
                 /* Update time spent working when change of arrival time has 
                  * occurred */
                 UpdateWorkingHours(hwnd, TRUE);
-                /* Update the leave time */
-                UpdateLeaveTime(hwnd);
                 return TRUE;
             }
             else
@@ -981,7 +991,6 @@ static INT_PTR OnMenuAccCommand(
             {
                 SetArrivalToNow(hwnd);
                 UpdateWorkingHours(hwnd, TRUE);
-                UpdateLeaveTime(hwnd);
             }
             return TRUE;
 

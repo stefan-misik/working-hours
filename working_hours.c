@@ -24,7 +24,7 @@
 /******************************************************************************/
 BOOL WhSystimeToWht(
     LPWHTIME lpWht,
-    const LPSYSTEMTIME lpSystime
+    const SYSTEMTIME * lpSystime
 )
 {
     lpWht->wHour = lpSystime->wHour;
@@ -49,8 +49,9 @@ BOOL WhWhtToSystime(
 /******************************************************************************/
 BOOL WhCalculate(
     LPWHLUA lpWhLua,
-    const LPWHTIME lpwhtArrival,
-    const LPWHTIME lpwhtNow,
+    LPCWHTIME lpwhtArrival,
+    LPCWHTIME lpwhtNow,
+    DWORD wPauseTime,
     LPWHTIME lpwhtWorked,
     LPCOLORREF lpcrColor
 )
@@ -87,7 +88,8 @@ BOOL WhCalculate(
 /******************************************************************************/
 BOOL WhLeaveTime(
     LPWHLUA lpWhLua,
-    const LPWHTIME lpwhtArrival,
+    LPCWHTIME lpwhtArrival,
+    DWORD wPauseTime,
     LPWHTIME lpwhtLeave
 )
 {

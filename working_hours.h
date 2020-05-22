@@ -17,7 +17,7 @@
  */
 BOOL WhSystimeToWht(
     LPWHTIME lpWht,
-    const LPSYSTEMTIME lpSystime
+    const SYSTEMTIME * lpSystime
 );
 
 /**
@@ -39,6 +39,7 @@ BOOL WhWhtToSystime(
  * @param[in,out] lpWhLua Working hours Lua state
  * @param[in] lpWhtArrival Arrival time
  * @param[in] lpwhtNow Current time
+ * @param wPauseTime Pause time in minutes
  * @param[out] lpwhtWorked Pointer which obtains the time spent working
  * @param[out] lpcrColor Pointer which can optionally obtain informative color
  * 
@@ -46,8 +47,9 @@ BOOL WhWhtToSystime(
  */
 BOOL WhCalculate(
     LPWHLUA lpWhLua,
-    const LPWHTIME lpwhtArrival,
-    const LPWHTIME lpwhtNow,
+    LPCWHTIME lpwhtArrival,
+    LPCWHTIME lpwhtNow,
+    DWORD wPauseTime,
     LPWHTIME lpwhtWorked,
     LPCOLORREF lpcrColor
 );
@@ -58,13 +60,15 @@ BOOL WhCalculate(
  * 
  * @param[in,out] lpWhLua Working hours Lua state
  * @param[in] lpwhtArrival
+ * @param wPauseTime Pause time in minutes
  * @param[out] lpwhtLeaveTime
  * 
  * @return FALSE on failure
  */
 BOOL WhLeaveTime(
     LPWHLUA lpWhLua,
-    const LPWHTIME lpwhtArrival,
+    LPCWHTIME lpwhtArrival,
+    DWORD wPauseTime,
     LPWHTIME lpwhtLeave
 );
 
