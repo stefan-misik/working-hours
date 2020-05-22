@@ -672,6 +672,12 @@ static BOOL OnInitDialog(
     /* Check or uncheck the 'Run at startup' menu item */
     IsRegisteredToRunAtStartup(hwnd);
     
+    /* Configure Pause time control */
+    SetDlgItemInt(hwnd, IDC_PAUSE_TIME, 0, FALSE);
+    SendDlgItemMessage(hwnd, IDC_PAUSE_TIME_SPIN, UDM_SETBUDDY,
+            (WPARAM)GetDlgItem(hwnd, IDC_PAUSE_TIME), 0);
+    SendDlgItemMessage(hwnd, IDC_PAUSE_TIME_SPIN, UDM_SETRANGE32, 0, 60 * 24);
+
     /* Change arrival time format */
     SendDlgItemMessage(hwnd, IDC_ARR_TIME, DTM_SETFORMAT, 0,
         (LPARAM)TEXT(WH_TIME_FORMAT));
@@ -709,9 +715,13 @@ static INT_PTR OnClose(
     HWND hwnd
 )
 {
+#ifndef _DEBUG
     /* Hide the window */
     ShowMainWnd(hwnd, FALSE);
-    
+#else
+    DestroyWindow(hwnd);
+#endif
+
     return TRUE;
 }
 
@@ -839,12 +849,16 @@ static INT_PTR OnControlCommand(
             lpData->bIsPaused = FALSE;
             SendDlgItemMessage(hwnd, IDC_PLAY_PAUSE, BM_SETIMAGE, IMAGE_ICON,
                     (LPARAM)lpData->hPauseIcon);
+            EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_TIME), TRUE);
+            EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_TIME_SPIN), TRUE);
         }
         else
         {
             lpData->bIsPaused = TRUE;
             SendDlgItemMessage(hwnd, IDC_PLAY_PAUSE, BM_SETIMAGE, IMAGE_ICON,
                     (LPARAM)lpData->hResumeIcon);
+            EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_TIME), FALSE);
+            EnableWindow(GetDlgItem(hwnd, IDC_PAUSE_TIME_SPIN), FALSE);
         }
         return TRUE;
     }

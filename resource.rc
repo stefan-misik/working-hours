@@ -45,7 +45,7 @@ BEGIN
 END
 
 /******************************************************************************/
-IDD_MAIN_WND DIALOGEX 0,0,110,117
+IDD_MAIN_WND DIALOGEX 0,0,120,117
 STYLE   DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_OVERLAPPED |
     NOT WS_VISIBLE | WS_CAPTION | WS_SYSMENU 
 EXSTYLE WS_EX_APPWINDOW
@@ -55,19 +55,22 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "Arrival time:", IDC_STATIC, 7, 10, 50, 8
     CONTROL         "",IDC_ARR_TIME, DATETIMEPICK_CLASS, WS_BORDER | WS_CHILD |
-                    WS_VISIBLE | DTS_TIMEFORMAT | WS_TABSTOP, 50, 7, 53, 14
+                    WS_VISIBLE | DTS_TIMEFORMAT | WS_TABSTOP, 60, 7, 53, 14
 
     LTEXT           "Leave time:", IDC_STATIC, 7, 28, 50, 8
-    EDITTEXT        IDC_LEAVE_TIME, 50, 25, 53, 14, WS_BORDER | NOT WS_TABSTOP |
+    EDITTEXT        IDC_LEAVE_TIME, 60, 25, 53, 14, WS_BORDER | NOT WS_TABSTOP |
                     ES_READONLY
 
-    LTEXT           "Pause time:", IDC_STATIC, 7, 46, 50, 8
-    EDITTEXT        IDC_PAUSE_TIME, 50, 43, 36, 14, WS_BORDER | NOT WS_TABSTOP |
-                    ES_READONLY
-    PUSHBUTTON      "", IDC_PLAY_PAUSE, 88, 43, 14, 14, BS_ICON
+    LTEXT           "Pause minutes:", IDC_STATIC, 7, 46, 50, 8
+    EDITTEXT        IDC_PAUSE_TIME, 60, 43, 36, 14, WS_BORDER | NOT WS_TABSTOP |
+                    ES_NUMBER
+    CONTROL         "",IDC_PAUSE_TIME_SPIN,"msctls_updown32",
+                    UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_ARROWKEYS |
+                    UDS_NOTHOUSANDS, 90, 43, 12, 14
+    PUSHBUTTON      "", IDC_PLAY_PAUSE, 98, 43, 14, 14, BS_ICON
 
-    GROUPBOX        "You've worked for", IDC_STATIC, 7, 64, 96, 46
-    EDITTEXT        IDC_WORK_TIME, 13, 75, 84, 28,
+    GROUPBOX        "You've worked for", IDC_STATIC, 7, 64, 106, 46
+    EDITTEXT        IDC_WORK_TIME, 18, 75, 84, 28,
                     NOT WS_BORDER | NOT WS_TABSTOP | ES_READONLY
 END
 

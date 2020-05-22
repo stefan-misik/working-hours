@@ -17,8 +17,9 @@
     #define IDC_ARR_TIME                1001
     #define IDC_LEAVE_TIME              1002
     #define IDC_PAUSE_TIME              1003
-    #define IDC_PLAY_PAUSE              1004
-    #define IDC_WORK_TIME               1005
+    #define IDC_PAUSE_TIME_SPIN         1004
+    #define IDC_PLAY_PAUSE              1005
+    #define IDC_WORK_TIME               1006
 
 #define IDD_ABOUT                       1020
     #define IDC_APP_ICON                    1021

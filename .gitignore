@@ -31,6 +31,9 @@
 # Netbeans project files
 nbproject/
 
+# Eclipse local settings
+.settings/
+
 *.VisualElementsManifest.xml
 res/*.*.png
 *.ico
