@@ -9,8 +9,8 @@
 
 /* Project version*/
 #define PROJECT_VER_1           2
-#define PROJECT_VER_2           0
-#define PROJECT_VER_3           2
+#define PROJECT_VER_2           1
+#define PROJECT_VER_3           0
 #ifdef PROJECT_COMMITS
     #define PROJECT_VER_4       PROJECT_COMMITS
 #else
