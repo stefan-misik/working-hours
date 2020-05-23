@@ -8,9 +8,11 @@
 ifeq ($(shell uname -o),Cygwin)
 	CC	= i686-w64-mingw32-gcc
 	WINDRES = i686-w64-mingw32-windres
+	STRIP = i686-w64-mingw32-strip
 else
 	CC	= gcc
 	WINDRES = windres
+	STRIP = strip
 endif
 # Download tool
 DOWNT = curl -R -O
@@ -65,9 +67,12 @@ ifeq ($(DBG),y)
 endif
 ################################################################################
 
-.PHONY: all clean mostlyclean
+.PHONY: all clean mostlyclean strip
 
 all: $(EXECUTABLE)
+
+strip: all
+	$(STRIP) $(EXECUTABLE)
 
 $(EXECUTABLE): $(LUA_LIB) $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ)  -o $@ $(LDLIBS)
