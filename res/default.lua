@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- Function used to calculate working hours
-function Calculate(Arrival, Now)
+function Calculate(Arrival, Now, PauseTime)
     -- Get the value representations in minutes
     local MinutesNow = Now.Minute + (60 * Now.Hour)
     local Minutes = MinutesNow - (Arrival.Minute + (60 * Arrival.Hour))
@@ -11,6 +11,9 @@ function Calculate(Arrival, Now)
     elseif (Minutes > (6*60)) then
         Minutes = 6*60
     end
+
+    -- Subtract pause time
+    Minutes = Minutes - PauseTime
 
     -- Make sure the time spent working is not negative
     if (Minutes < 0) then
@@ -45,12 +48,15 @@ end
 
 --------------------------------------------------------------------------------
 -- Function used to calculate leave time
-function LeaveTime(Arrival)
+function LeaveTime(Arrival, PauseTime)
     local Minutes = Arrival.Minute + (60 * Arrival.Hour)
 
     -- Leave in 8 hours, 30 minutes for launch break
     -- fix whole day overflow
     Minutes = (Minutes + (8*60) + 30) % (24*60)
+
+    -- Add pause time
+    Minutes = Minutes + PauseTime
 
     -- Calculate leave time
     local Leave = {

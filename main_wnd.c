@@ -26,6 +26,7 @@ typedef struct tagMAINWNDDATA
     COLORREF crWorkHoursCol;/**< Color of the working hours */   
     WHTIME whtLastUpdate;   /**< Time of last window update */
     WHTIME whtWorkingTime;  /**< Time spent working */
+    BOOL bPauseChangeUpdate;/**< Allow W-H to update when pause time changes */
     WHLUA WhLua;            /**< Working hours state */
     LPSTR lpLuaCode;        /**< String containing the current Lua code */
     BOOL bLuaReady;         /**< Lua state initialized and not being editted */
@@ -277,8 +278,10 @@ static VOID UpdateWorkingHours(
         /* Remember work time */
         lpData->whtWorkingTime = whtNewWorkingTime;
 
-        /* Update pause time */
+        /* Update pause time and prevent recursive call of update */
+        lpData->bPauseChangeUpdate = FALSE;
         SetDlgItemInt(hwnd, IDC_PAUSE_TIME, pauseTime, FALSE);
+        lpData->bPauseChangeUpdate = TRUE;
 
         UpdateWorkingHoursText(hwnd, &whtNewWorkingTime);
 
@@ -432,6 +435,7 @@ static LPMAINWNDDATA CreateMainWndData(VOID)
     lpData->whtLastUpdate.wMinute = 0;
     lpData->whtWorkingTime.wHour = 0;
     lpData->whtWorkingTime.wMinute = 0;
+    lpData->bPauseChangeUpdate = FALSE;
     WhLuaInit(&(lpData->WhLua));
     lpData->lpLuaCode = NULL;
     lpData->bLuaReady = FALSE;
@@ -914,7 +918,7 @@ static INT_PTR OnNotify(
  * @param hwnd Main window handle
  * @param wNotifCode Control-specific notification code
  * @param wControlID Dialog Control ID
- * @param hwndC COntrol window handle
+ * @param hwndC Control window handle
  * 
  * @return TRUE if message is processed
  */
@@ -958,6 +962,23 @@ static INT_PTR OnControlCommand(
         }
         return TRUE;
     }
+
+    case IDC_PAUSE_TIME:
+        if (EN_CHANGE == wNotifCode)
+        {
+            LPMAINWNDDATA lpData = GetMainWindowData(hwnd);
+            /* Update, only when it is allowed to prevent stack overflow by
+             * recursively calling update function */
+            if (lpData->bPauseChangeUpdate)
+            {
+                UpdateWorkingHours(hwnd, TRUE);
+            }
+            return TRUE;
+        }
+        else
+        {
+            return FALSE;
+        }
     }
     return FALSE;
 }

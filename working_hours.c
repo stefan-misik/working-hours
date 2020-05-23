@@ -63,9 +63,10 @@ BOOL WhCalculate(
     /* Push input parameters onto Lua stack */
     WhLuaPushTime(lpWhLua->lpLua, lpwhtArrival);
     WhLuaPushTime(lpWhLua->lpLua, lpwhtNow);
+    lua_pushinteger(lpWhLua->lpLua, wPauseTime);
     
     /* Call the Lua function */
-    if(0 != lua_pcall(lpWhLua->lpLua, 2, 2, 0))
+    if(0 != lua_pcall(lpWhLua->lpLua, 3, 2, 0))
     {
         WhLuaErrorMessage(lpWhLua);
         return FALSE;
@@ -100,9 +101,10 @@ BOOL WhLeaveTime(
     
     /* Push input parameters onto Lua stack */
     WhLuaPushTime(lpWhLua->lpLua, lpwhtArrival);
+    lua_pushinteger(lpWhLua->lpLua, wPauseTime);
     
     /* Call the Lua function */
-    if(0 != lua_pcall(lpWhLua->lpLua, 1, 1, 0))
+    if(0 != lua_pcall(lpWhLua->lpLua, 2, 1, 0))
     {
         WhLuaErrorMessage(lpWhLua);
         return FALSE;

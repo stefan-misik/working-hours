@@ -102,3 +102,7 @@ mostlyclean:
 clean: mostlyclean
 	$(RM) -r $(LUA_ARCH) $(LUA_DIR)
 
+
+################################################################################
+
+resource.o: resource.rc resource.h defs.h win_common.h res/default.lua
